@@ -258,33 +258,28 @@ def ust_dudak_alt_dudak(lms, img_w, img_h):
 
 
 def yuz_yatay_orani(lms, img_w, img_h):
-    """
-    Yüz Yatay Oranı (Golden Ratio testi):
-    Yüz 5 eşit dilime bölünmeli:
-    |sol kulak → sol göz sol| : |sol göz sol → sol göz sağ| :
-    |sol göz sağ → sağ göz sol| : |sağ göz sol → sağ göz sağ| : |sağ göz sağ → sağ kulak|
-    """
-    face_l  = get_landmark(lms, FACE_LEFT,       img_w, img_h)
-    face_r  = get_landmark(lms, FACE_RIGHT,      img_w, img_h)
-    le_l    = get_landmark(lms, LEFT_EYE_LEFT,   img_w, img_h)
-    le_r    = get_landmark(lms, LEFT_EYE_RIGHT,  img_w, img_h)
-    re_l    = get_landmark(lms, RIGHT_EYE_LEFT,  img_w, img_h)
-    re_r    = get_landmark(lms, RIGHT_EYE_RIGHT, img_w, img_h)
+    # Görüntünün solundan sağına doğru kusursuz MediaPipe indeks sırası:
+    face_l  = get_landmark(lms, 234, img_w, img_h) # Sol Şakak
+    re_out  = get_landmark(lms, 33,  img_w, img_h) # Sağ Göz Dış (Görüntü Solu)
+    re_in   = get_landmark(lms, 133, img_w, img_h) # Sağ Göz İç
+    le_in   = get_landmark(lms, 362, img_w, img_h) # Sol Göz İç
+    le_out  = get_landmark(lms, 263, img_w, img_h) # Sol Göz Dış
+    face_r  = get_landmark(lms, 454, img_w, img_h) # Sağ Şakak
 
-    total_x = abs(face_l[0] - face_r[0])  # sadece x ekseni, segmentlerle tutarlı
-    s1 = abs(face_l[0] - le_l[0])
-    s2 = abs(le_l[0]   - le_r[0])
-    s3 = abs(le_r[0]   - re_l[0])
-    s4 = abs(re_l[0]   - re_r[0])
-    s5 = abs(re_r[0]   - face_r[0])
+    total_x = abs(face_l[0] - face_r[0])
+    s1 = abs(face_l[0] - re_out[0])
+    s2 = abs(re_out[0] - re_in[0])
+    s3 = abs(re_in[0]  - le_in[0])
+    s4 = abs(le_in[0]  - le_out[0])
+    s5 = abs(le_out[0] - face_r[0])
 
     return {
-        "Sol Kulak → Sol Göz Sol (px)":  round(s1, 2),
-        "Sol Göz Genişliği (px)":        round(s2, 2),
-        "Göz Arası Mesafe (px)":         round(s3, 2),
-        "Sağ Göz Genişliği (px)":        round(s4, 2),
-        "Sağ Göz Sağ → Sağ Kulak (px)": round(s5, 2),
-        "Toplam Yüz Genişliği (px)":     round(total_x, 2),
+        "Segment 1 (px)": round(s1, 2),
+        "Segment 2 (px)": round(s2, 2),
+        "Segment 3 (px)": round(s3, 2),
+        "Segment 4 (px)": round(s4, 2),
+        "Segment 5 (px)": round(s5, 2),
+        "Toplam Yüz Genişliği (px)": round(total_x, 2),
         "Oranlar (1:2:3:4:5)": (
             round(s1 / total_x, 3) if total_x else 0,
             round(s2 / total_x, 3) if total_x else 0,
@@ -293,8 +288,6 @@ def yuz_yatay_orani(lms, img_w, img_h):
             round(s5 / total_x, 3) if total_x else 0,
         ),
     }
-
-
 def yuz_dikey_orani(lms, img_w, img_h):
     """
     Yüz Dikey Oranı (Üç bölge):
@@ -425,15 +418,18 @@ def kas_pozisyonu(lms, img_w, img_h):
 # ─────────────────────────────────────────────
 
 def _sg(value, ideal, tol=0.25):
-    """Gaussian puan (0-100). tol: göreli sapma eşiği."""
+    """Doğrusal puanlama (0-100). tol: maksimum sapma toleransı."""
     try:
         v, i = float(value), float(ideal)
     except (TypeError, ValueError):
         return 0.0
     if i == 0:
         return 0.0
-    return max(0.0, 100.0 * math.exp(-((abs(v - i) / i / tol) ** 2)))
-
+        
+    diff_ratio = abs(v - i) / i
+    # Eğer sapma toleransı aşarsa 0 puan, aşmazsa orantılı puan (örn: diff=0 ise 100)
+    score = max(0.0, 100.0 * (1.0 - (diff_ratio / tol)))
+    return score
 
 def _sym(a, b):
     """İki değerin simetri puanı (0-100)."""
@@ -471,12 +467,15 @@ def score_face(data: dict) -> dict:
 
     goz_score = goz_ar * 0.60 + goz_sym * 0.40
 
-    # ── BURUN ─────────────────────────────────────────────────────
-    # En/Boy: ideal 1/φ ≈ 0.618; Burun/Ağız: ideal 1/φ ≈ 0.618
+   # ── BURUN ─────────────────────────────────────────────────────
     beb = data["Burun En/Boy Oranı"]
     bga = data["Burun Genişliği / Ağız Genişliği"]
-    beb_s = _sg(beb["En/Boy Oranı"],       1 / PHI, 0.25)
-    bga_s = _sg(bga["Burun/Ağız Oranı"],   1 / PHI, 0.25)
+    
+    # 2D perspektif ezilmesi nedeniyle ideal En/Boy oranı ~1.0 alınmalı
+    beb_s = _sg(beb["En/Boy Oranı"], 1.0, 0.35)
+    
+    # İnsan anatomisinde ideal Burun/Ağız oranı 0.78'dir (1/PHI çok dardır)
+    bga_s = _sg(bga["Burun/Ağız Oranı"], 0.78, 0.25)
 
     burun_score = beb_s * 0.50 + bga_s * 0.50
 
@@ -487,9 +486,10 @@ def score_face(data: dict) -> dict:
 
     # Burun-dudak-çene üçüzlü oranı: ideal üçte bir bölünme
     bdc = data["Burun - Dudak - Çene"]
-    bdc_s = (_sg(bdc["Seg1 Oranı"], 1/3, 0.20)
-           + _sg(bdc["Seg2 Oranı"], 1/(3*PHI), 0.30)
-           + _sg(bdc["Seg3 Oranı"], 1/3, 0.20)) / 3
+    # Anatomik ideal: Üst kısım ~%33, Dudak dolgunluğu ~%22, Alt çene ~%45
+    bdc_s = (_sg(bdc["Seg1 Oranı"], 0.333, 0.25)
+           + _sg(bdc["Seg2 Oranı"], 0.222, 0.35)
+           + _sg(bdc["Seg3 Oranı"], 0.445, 0.25)) / 3
 
     dudak_score = dudak_s * 0.45 + bdc_s * 0.55
 
@@ -500,9 +500,9 @@ def score_face(data: dict) -> dict:
 
     # Yüz dikey üç bölge: ideal eşit üçte bir
     yuz_dv = data["Yüz Dikey Oranı"]
-    yuz_dv_s = (_sg(yuz_dv["Alın Oranı"],     1/3, 0.25)
-              + _sg(yuz_dv["Orta Yüz Oranı"], 1/3, 0.25)
-              + _sg(yuz_dv["Alt Yüz Oranı"],  1/3, 0.25)) / 3
+    yuz_dv_s = (_sg(yuz_dv["Alın Oranı"],     0.25, 0.25)
+              + _sg(yuz_dv["Orta Yüz Oranı"], 0.35, 0.25)
+              + _sg(yuz_dv["Alt Yüz Oranı"],  0.40, 0.25)) / 3
 
     cene_score = yuz_eb_s * 0.50 + yuz_dv_s * 0.50
 
