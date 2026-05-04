@@ -1,27 +1,99 @@
 import flet as ft
 import time
 
-def main(page: ft.Page):
-    page.title = "Advance Self"
-    page.bgcolor = "#e6e6e6"
-    page.padding = 0
-    page.theme_mode = ft.ThemeMode.LIGHT
-    page.scroll = None
-    page.fonts = {
-        "Inria Serif": "https://raw.githubusercontent.com/google/fonts/main/ofl/inriaserif/InriaSerif-Regular.ttf",
-    }
-        
-    HEADER_BG = "#d8cdad"
-    TEXT_RED = "#f85e5e"
-    CARD_BG = "#fa4040"
-    TEXT_DARK = "#222222"
-    
-    def serif(text, size=31, color=TEXT_RED, text_align=ft.TextAlign.CENTER):
-        return ft.Text(text, size=size, color=color, font_family="Inria Serif", text_align=text_align)
-        
-    def sans(text, size=18, color=TEXT_DARK, text_align=ft.TextAlign.CENTER):
-        return ft.Text(text, size=size, color=color, font_family="Inria Serif", text_align=text_align)
+HEADER_BG = "#d8cdad"
+TEXT_RED = "#f85e5e"
+CARD_BG = "#fa4040"
+TEXT_DARK = "#222222"
 
+def serif(text, size=31, color=TEXT_RED, text_align=ft.TextAlign.CENTER):
+    return ft.Text(text, size=size, color=color, font_family="Inria Serif", text_align=text_align)
+    
+def sans(text, size=18, color=TEXT_DARK, text_align=ft.TextAlign.CENTER):
+    return ft.Text(text, size=size, color=color, font_family="Inria Serif", text_align=text_align)
+
+def red_card():
+    return ft.Container(
+        bgcolor=CARD_BG,
+        width=240,
+        height=320,
+        border_radius=8,
+        alignment=ft.Alignment(0, 0),
+        content=ft.Text("this is a card\ngoing to add\na picture", size=19, color="#ffffff", text_align=ft.TextAlign.CENTER, font_family="Inria Serif")
+    )
+
+def card_row():
+    return ft.Row(
+        alignment=ft.MainAxisAlignment.CENTER,
+        spacing=40,
+        wrap=True,
+        controls=[red_card(), red_card(), red_card()]
+    )
+
+def build_login_view(page: ft.Page) -> ft.View:
+    username_input = ft.TextField(
+        label="Username",
+        border_radius=8,
+        border_color=HEADER_BG,
+        cursor_color=TEXT_RED,
+        width=300,
+        text_style=ft.TextStyle(font_family="Inria Serif"),
+        label_style=ft.TextStyle(font_family="Inria Serif", color=TEXT_DARK)
+    )
+    
+    password_input = ft.TextField(
+        label="Password",
+        password=True,
+        can_reveal_password=True,
+        border_radius=8,
+        border_color=HEADER_BG,
+        cursor_color=TEXT_RED,
+        width=300,
+        text_style=ft.TextStyle(font_family="Inria Serif"),
+        label_style=ft.TextStyle(font_family="Inria Serif", color=TEXT_DARK)
+    )
+
+    login_btn = ft.ElevatedButton(
+        bgcolor=CARD_BG,
+        width=300,
+        height=50,
+        style=ft.ButtonStyle(
+            shape=ft.RoundedRectangleBorder(radius=8),
+            color="#ffffff",
+        ),
+        content=ft.Text("Login / Sign Up", size=19, font_family="Inria Serif", color="#ffffff"),
+        on_click=lambda _: page.go("/main")
+    )
+
+    content = ft.Column(
+        alignment=ft.MainAxisAlignment.CENTER,
+        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+        spacing=20,
+        controls=[
+            serif("Advance Self", size=45),
+            ft.Text("Improve Your Image", size=21, color=TEXT_DARK, opacity=0.7, font_family="Inria Serif", italic=True),
+            ft.Container(height=30),
+            username_input,
+            password_input,
+            ft.Container(height=10),
+            login_btn
+        ]
+    )
+
+    return ft.View(
+        route="/login",
+        padding=0,
+        bgcolor="#e6e6e6",
+        controls=[
+            ft.Container(
+                expand=True,
+                alignment=ft.Alignment(0, 0),
+                content=content
+            )
+        ]
+    )
+
+def build_main_view(page: ft.Page) -> ft.View:
     # HEADER
     header = ft.Container(
         left=0, right=0, top=0,
@@ -54,6 +126,7 @@ def main(page: ft.Page):
                             height=36,
                             border_radius=18,
                             alignment=ft.Alignment(0, 0),
+                            on_click=lambda _: page.go("/login")
                         ),
                     ]
                 )
@@ -77,24 +150,6 @@ def main(page: ft.Page):
             ]
         )
     )
-
-    def red_card():
-        return ft.Container(
-            bgcolor=CARD_BG,
-            width=240,
-            height=320,
-            border_radius=8,
-            alignment=ft.Alignment(0, 0),
-            content=ft.Text("this is a card\ngoing to add\na picture", size=19, color="#ffffff", text_align=ft.TextAlign.CENTER, font_family="Inria Serif")
-        )
-
-    def card_row():
-        return ft.Row(
-            alignment=ft.MainAxisAlignment.CENTER,
-            spacing=40,
-            wrap=True,
-            controls=[red_card(), red_card(), red_card()]
-        )
 
     state = {"current_section": 0, "last_scroll_time": 0.0}
     
@@ -216,20 +271,44 @@ def main(page: ft.Page):
         expand=True
     )
 
-    # Use a Stack to ensure body slides UNDER the header and footer overlay.
-    page.add(
-        ft.Stack(
-            expand=True,
-            controls=[
-                ft.Container(
-                    left=0, right=0, top=0, bottom=0,
-                    content=body
-                ),
-                header,
-                footer
-            ]
-        )
+    return ft.View(
+        route="/main",
+        padding=0,
+        bgcolor="#e6e6e6",
+        controls=[
+            ft.Stack(
+                expand=True,
+                controls=[
+                    ft.Container(
+                        left=0, right=0, top=0, bottom=0,
+                        content=body
+                    ),
+                    header,
+                    footer
+                ]
+            )
+        ]
     )
+
+def main(page: ft.Page):
+    page.title = "Advance Self"
+    page.theme_mode = ft.ThemeMode.LIGHT
+    page.fonts = {
+        "Inria Serif": "https://raw.githubusercontent.com/google/fonts/main/ofl/inriaserif/InriaSerif-Regular.ttf",
+    }
     
+    def route_change(route):
+        page.views.clear()
+        
+        if page.route == "/login":
+            page.views.append(build_login_view(page))
+        elif page.route == "/main":
+            page.views.append(build_main_view(page))
+            
+        page.update()
+
+    page.on_route_change = route_change
+    page.go("/login")
+
 if __name__ == "__main__":
     ft.run(main)
