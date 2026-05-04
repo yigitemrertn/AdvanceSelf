@@ -25,6 +25,35 @@ SUCCESS = "#059669"
 ERROR = "#DC2626"
 CARD_COLOR = SURFACE
 
+# Stock photos (Unsplash) — demo visuals for empty image slots; replace with CDN assets anytime.
+IMG_LOGIN_HERO = "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=1400&q=80"
+IMG_LANDING_HERO = "https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=1000&q=80"
+IMG_DASH_HAIR = "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=1000&q=80"
+IMG_DASH_OUTFIT = "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=800&q=80"
+IMG_DASH_ACCESSORY = "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=800&q=80"
+IMG_STEP_SCAN = "https://images.unsplash.com/photo-1512496015851-a90fb38ba796?auto=format&fit=crop&w=600&q=80"
+IMG_STEP_AI = "https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=600&q=80"
+IMG_STEP_CURATE = "https://images.unsplash.com/photo-1445205170230-053b83016050?auto=format&fit=crop&w=600&q=80"
+
+
+def cover_image(
+    src: str,
+    *,
+    height: int,
+    width: int | None = None,
+    border_radius: int = 16,
+    expand: bool = False,
+) -> ft.Container:
+    return ft.Container(
+        height=height,
+        width=width,
+        expand=expand,
+        border_radius=border_radius,
+        clip_behavior=ft.ClipBehavior.ANTI_ALIAS,
+        content=ft.Image(src=src, fit=ft.ImageFit.COVER, expand=True, width=width, height=height),
+    )
+
+
 APP_STATE = {
     "token": None,
     "username": "friend",
@@ -150,21 +179,7 @@ def fetch_bootstrap_data() -> None:
         resp.raise_for_status()
         APP_STATE["recommendations"][category] = resp.json()
 
-    try:
-        feed = requests.get(f"{API_BASE_URL}/community/feed", params={"limit": 9}, timeout=12)
-        feed.raise_for_status()
-        APP_STATE["community_feed"] = feed.json()
-    except requests.RequestException:
-        APP_STATE["community_feed"] = []
-
-
-def fetch_community_feed_only() -> None:
-    try:
-        feed = requests.get(f"{API_BASE_URL}/community/feed", params={"limit": 12}, timeout=12)
-        feed.raise_for_status()
-        APP_STATE["community_feed"] = feed.json()
-    except requests.RequestException:
-        APP_STATE["community_feed"] = []
+    APP_STATE["community_feed"] = []
 
 
 def refresh_all_recommendations_from_api(page: ft.Page) -> None:
@@ -179,16 +194,6 @@ def refresh_all_recommendations_from_api(page: ft.Page) -> None:
         navigate(page, "/main")
     except requests.RequestException as exc:
         toast(page, f"Refresh failed: {error_detail(exc)}")
-
-
-def like_community_post(page: ft.Page, post_id: int) -> None:
-    try:
-        requests.post(f"{API_BASE_URL}/community/{post_id}/like", timeout=12).raise_for_status()
-        fetch_community_feed_only()
-        toast(page, "Like saved.")
-        navigate(page, "/main")
-    except requests.RequestException as exc:
-        toast(page, f"Like failed: {error_detail(exc)}")
 
 
 def open_detail_dialog(page: ft.Page, title: str, body: str, extra: str = "") -> None:
@@ -360,15 +365,12 @@ def build_top_nav(
                             [
                                 nav_link("Home", lambda _: navigate(page, "/main")),
                                 nav_link("Our Navigator", lambda _: navigate(page, "/survey")),
-                                nav_link(
-                                    "Community",
-                                    lambda _: (fetch_community_feed_only(), toast(page, "Community feed updated."), navigate(page, "/main")),
-                                ),
+                                nav_link("Lookbook", stub("Lookbook — coming soon.")),
                             ]
                             if for_app and APP_STATE.get("token")
                             else [
                                 nav_link("Styles", stub("Sign in to personalize your style deck.")),
-                                nav_link("Community", stub("Community lives on your dashboard after sign-in.")),
+                                nav_link("Lookbook", stub("Lookbook unlocks after sign-in.")),
                                 nav_link("Moodboard", stub("Moodboards appear in your recommendations.")),
                             ]
                         ),
@@ -450,12 +452,13 @@ def build_landing_view(page: ft.Page) -> ft.View:
         clip_behavior=ft.ClipBehavior.ANTI_ALIAS,
         content=ft.Stack(
             [
+                ft.Image(src=IMG_LANDING_HERO, fit=ft.ImageFit.COVER, expand=True, height=420),
                 ft.Container(
                     expand=True,
                     gradient=ft.LinearGradient(
                         begin=ft.Alignment(-0.8, -1),
                         end=ft.Alignment(0.8, 1),
-                        colors=["#1e1b4b", "#4c1d95", "#7c3aed"],
+                        colors=["#1e1b4b99", "#4c1d9599", "#7c3aed88"],
                     ),
                 ),
                 ft.Container(
@@ -485,21 +488,25 @@ def build_landing_view(page: ft.Page) -> ft.View:
         ),
     )
 
-    def process_step(icon, title: str, desc: str) -> ft.Container:
+    def process_step(icon, title: str, desc: str, photo: str) -> ft.Container:
         return ft.Container(
             expand=1,
-            padding=16,
+            padding=10,
+            bgcolor="#FAFAFF",
+            border_radius=20,
+            border=ft.border.all(1, "#E8E0F5"),
             content=ft.Column(
                 horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                 spacing=10,
                 controls=[
+                    cover_image(photo, height=110, border_radius=14, expand=True),
                     ft.Container(
-                        width=56,
-                        height=56,
-                        border_radius=28,
+                        width=48,
+                        height=48,
+                        border_radius=24,
                         bgcolor=LAVENDER_SOFT,
                         alignment=ft.Alignment(0, 0),
-                        content=ft.Icon(icon, color=PRIMARY, size=28),
+                        content=ft.Icon(icon, color=PRIMARY, size=24),
                     ),
                     ft.Text(title, size=15, weight=ft.FontWeight.W_700, color=NAVY, text_align=ft.TextAlign.CENTER),
                     ft.Text(desc, size=12, color=TEXT_MUTED, text_align=ft.TextAlign.CENTER),
@@ -525,16 +532,19 @@ def build_landing_view(page: ft.Page) -> ft.View:
                             ft.Icons.FACE_RETOUCHING_NATURAL,
                             "Scan & Analyze",
                             "Upload a photo for facial geometry and tone cues.",
+                            IMG_STEP_SCAN,
                         ),
                         process_step(
                             ft.Icons.MEMORY,
                             "Compute Aesthetics",
                             "Your profile is mapped to curated fashion signals.",
+                            IMG_STEP_AI,
                         ),
                         process_step(
                             ft.Icons.DIAMOND,
                             "Curate & Improve",
                             "Looks you can adopt—hairstyles, outfits, and finishing touches.",
+                            IMG_STEP_CURATE,
                         ),
                     ],
                 ),
@@ -671,25 +681,36 @@ def build_login_view(page: ft.Page) -> ft.View:
     left_panel = ft.Container(
         expand=1,
         height=640,
-        padding=40,
-        gradient=ft.LinearGradient(
-            begin=ft.Alignment(-0.9, -1),
-            end=ft.Alignment(0.2, 1),
-            colors=["#020617", "#1e1b4b", "#4c1d95"],
-        ),
-        content=ft.Column(
-            alignment=ft.MainAxisAlignment.END,
-            horizontal_alignment=ft.CrossAxisAlignment.START,
-            expand=True,
-            controls=[
-                ft.Text("Digital Couture.", size=36, weight=ft.FontWeight.W_800, color="white"),
-                ft.Container(height=12),
-                ft.Text(
-                    "Experience personalized style recommendations powered by cutting-edge computational intelligence.",
-                    size=15,
-                    color="#CBD5F5",
+        clip_behavior=ft.ClipBehavior.ANTI_ALIAS,
+        content=ft.Stack(
+            [
+                ft.Image(src=IMG_LOGIN_HERO, fit=ft.ImageFit.COVER, expand=True, height=640),
+                ft.Container(
+                    expand=True,
+                    gradient=ft.LinearGradient(
+                        begin=ft.Alignment(-0.5, -1),
+                        end=ft.Alignment(0.2, 1),
+                        colors=["#020617cc", "#1e1b4bdd", "#4c1d95cc"],
+                    ),
                 ),
-                ft.Container(height=48),
+                ft.Container(
+                    padding=40,
+                    alignment=ft.Alignment(-1, 1),
+                    content=ft.Column(
+                        alignment=ft.MainAxisAlignment.END,
+                        horizontal_alignment=ft.CrossAxisAlignment.START,
+                        spacing=12,
+                        controls=[
+                            ft.Text("Digital Couture.", size=36, weight=ft.FontWeight.W_800, color="white"),
+                            ft.Text(
+                                "Experience personalized style recommendations powered by cutting-edge computational intelligence.",
+                                size=15,
+                                color="#E2E8F0",
+                            ),
+                            ft.Container(height=24),
+                        ],
+                    ),
+                ),
             ],
         ),
     )
@@ -960,100 +981,45 @@ def build_three_tall_cards(items: list[dict], *, icon: str, empty_label: str) ->
     return ft.Row(spacing=12, run_spacing=12, controls=out)
 
 
-def build_color_square_row(hex_colors: list[str]) -> ft.Row:
+def chic_palette_swatches(hex_colors: list[str]) -> ft.Row:
     row_controls: list[ft.Control] = []
     for c in hex_colors:
-        safe = c if isinstance(c, str) and c.startswith("#") and len(c) >= 4 else "#CCCCCC"
+        safe = c if isinstance(c, str) and c.startswith("#") and len(c) >= 4 else "#94A3B8"
+        label = safe.upper()[:7]
         row_controls.append(
             ft.Container(
-                width=92,
-                height=92,
-                border_radius=18,
-                bgcolor=safe,
-                border=ft.border.all(1, "#00000014"),
-            )
-        )
-    return ft.Row(
-        spacing=14,
-        wrap=True,
-        alignment=ft.MainAxisAlignment.CENTER,
-        controls=row_controls,
-    )
-
-
-def build_community_feed(page: ft.Page, posts: list[dict]) -> ft.Row:
-    slots = list(posts or [])[:6]
-    while len(slots) < 3:
-        slots.append({})
-    out: list[ft.Control] = []
-    for p in slots:
-        title = (p.get("title") or "").strip() or "Community look"
-        desc = (p.get("description") or "Outfit inspiration from people with a similar vibe.")[:100]
-        tag = (p.get("style_tag") or "style").strip()
-        likes = p.get("likes")
-        pid = p.get("id")
-        likes_txt = f"{likes}" if isinstance(likes, int) else "0"
-
-        def bind_like(post_id: int | None):
-            if post_id is None:
-                return lambda _: None
-            pid_i = int(post_id)
-
-            def _(_e: ft.ControlEvent) -> None:
-                like_community_post(page, pid_i)
-
-            return _
-
-        like_btn = ft.IconButton(
-            ft.Icons.FAVORITE_BORDER,
-            icon_color=PRIMARY,
-            tooltip="Like (saved to server)",
-            on_click=bind_like(int(pid)) if pid is not None else bind_like(None),
-            disabled=pid is None,
-        )
-        out.append(
-            ft.Container(
-                expand=1,
-                width=280,
-                height=220,
-                border_radius=18,
-                bgcolor=SURFACE,
-                padding=14,
-                border=ft.border.all(1, "#E2E8F0"),
-                shadow=ft.BoxShadow(blur_radius=16, color="#1000000c", offset=ft.Offset(0, 6)),
-                content=ft.Column(
-                    spacing=8,
-                    controls=[
+                width=104,
+                height=104,
+                border_radius=26,
+                border=ft.border.all(3, "#FFFFFF"),
+                shadow=ft.BoxShadow(blur_radius=18, color="#28000018", offset=ft.Offset(0, 8)),
+                clip_behavior=ft.ClipBehavior.ANTI_ALIAS,
+                content=ft.Stack(
+                    [
+                        ft.Container(expand=True, bgcolor=safe),
                         ft.Container(
-                            height=56,
-                            border_radius=12,
-                            gradient=ft.LinearGradient(colors=["#EDE9FE", "#E0E7FF"]),
-                            alignment=ft.Alignment(0, 0),
-                            content=ft.Icon(ft.Icons.CHECKROOM, color=PRIMARY, size=24),
+                            expand=True,
+                            gradient=ft.LinearGradient(
+                                begin=ft.Alignment(0, -1),
+                                end=ft.Alignment(0, 1),
+                                colors=["#FFFFFF55", "#00000025"],
+                            ),
                         ),
-                        ft.Text(title, size=14, weight=ft.FontWeight.W_600, color=NAVY, max_lines=2),
-                        ft.Text(desc, size=11, color=TEXT_MUTED, max_lines=3),
-                        ft.Row(
-                            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-                            vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                            controls=[
-                                ft.Container(
-                                    padding=ft.Padding.symmetric(horizontal=8, vertical=4),
-                                    border_radius=8,
-                                    bgcolor=LAVENDER_SOFT,
-                                    content=ft.Text(tag, size=10, color=PRIMARY_DARK),
-                                ),
-                                ft.Row(
-                                    [like_btn, ft.Text(f"{likes_txt}", size=12, color=TEXT_MUTED)],
-                                    spacing=4,
-                                ),
-                            ],
+                        ft.Container(
+                            padding=10,
+                            alignment=ft.Alignment(1, 1),
+                            content=ft.Text(label, size=11, weight=ft.FontWeight.W_700, color="white"),
                         ),
                     ],
                 ),
             )
         )
-    return ft.Row(spacing=12, run_spacing=12, wrap=True, controls=out)
+    return ft.Row(
+        spacing=16,
+        wrap=True,
+        alignment=ft.MainAxisAlignment.CENTER,
+        controls=row_controls,
+    )
 
 
 def build_flow_section(title: str, body_controls: list[ft.Control]) -> ft.Container:
@@ -1104,8 +1070,6 @@ def build_main_view(page: ft.Page) -> ft.View:
     moodboard_body = ", ".join(
         f"{x.get('name', '')}: {x.get('reason', '')}" for x in (mood_payload.get("items") or [])[:3]
     ) or "Direction for your visual references."
-
-    community_posts = APP_STATE.get("community_feed") or []
 
     analysis_feedback = ft.Text("", size=13, color=ERROR)
 
@@ -1194,7 +1158,7 @@ def build_main_view(page: ft.Page) -> ft.View:
     while len(cloth_list) < 2:
         cloth_list.append({"name": "Core piece", "reason": "Layered anchor for your palette."})
 
-    def side_piece_card(tag: str, item: dict, h: int) -> ft.Container:
+    def side_piece_card(tag: str, item: dict, h: int, photo: str) -> ft.Container:
         nm = item.get("name", "")
         rs = item.get("reason", "")
         return ft.Container(
@@ -1202,7 +1166,8 @@ def build_main_view(page: ft.Page) -> ft.View:
             border_radius=22,
             bgcolor=SURFACE,
             shadow=ft.BoxShadow(blur_radius=24, color="#18000012", offset=ft.Offset(0, 10)),
-            padding=18,
+            padding=14,
+            clip_behavior=ft.ClipBehavior.ANTI_ALIAS,
             content=ft.Column(
                 expand=True,
                 spacing=10,
@@ -1213,12 +1178,13 @@ def build_main_view(page: ft.Page) -> ft.View:
                         bgcolor=LAVENDER_SOFT,
                         content=ft.Text(tag, size=11, weight=ft.FontWeight.W_600, color=PRIMARY_DARK),
                     ),
-                    ft.Text(nm, size=17, weight=ft.FontWeight.W_700, color=NAVY),
-                    ft.Text(rs, size=12, color=TEXT_MUTED),
+                    ft.Text(nm, size=16, weight=ft.FontWeight.W_700, color=NAVY),
+                    ft.Text(rs, size=12, color=TEXT_MUTED, max_lines=2),
                     ft.Container(
                         expand=True,
                         border_radius=14,
-                        gradient=ft.LinearGradient(colors=["#f8fafc", "#ede9fe"]),
+                        clip_behavior=ft.ClipBehavior.ANTI_ALIAS,
+                        content=ft.Image(src=photo, fit=ft.ImageFit.COVER, expand=True),
                     ),
                 ],
             ),
@@ -1229,54 +1195,65 @@ def build_main_view(page: ft.Page) -> ft.View:
         height=440,
         border_radius=28,
         clip_behavior=ft.ClipBehavior.ANTI_ALIAS,
-        gradient=ft.LinearGradient(
-            begin=ft.Alignment(-0.5, -1),
-            end=ft.Alignment(0.5, 1),
-            colors=["#312e81", "#4c1d95", "#6d28d9"],
-        ),
-        padding=22,
-        content=ft.Column(
-            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-            expand=True,
-            controls=[
-                ft.Row(
-                    [
-                        ft.Container(
-                            padding=ft.Padding.symmetric(horizontal=12, vertical=6),
-                            border_radius=20,
-                            bgcolor="#45FFFFFF",
-                            content=ft.Row(
-                                [
-                                    ft.Icon(ft.Icons.CONTENT_CUT, color="white", size=16),
-                                    ft.Text("Hairstyle idea", color="white", size=12, weight=ft.FontWeight.W_600),
-                                ],
-                                tight=True,
-                                spacing=6,
-                            ),
-                        ),
-                    ]
+        content=ft.Stack(
+            [
+                ft.Image(src=IMG_DASH_HAIR, fit=ft.ImageFit.COVER, expand=True, height=440),
+                ft.Container(
+                    expand=True,
+                    gradient=ft.LinearGradient(
+                        begin=ft.Alignment(0, -0.4),
+                        end=ft.Alignment(0, 1),
+                        colors=["#1e1b4b00", "#1e1b4bcc", "#0f172ae6"],
+                    ),
                 ),
                 ft.Container(
-                    padding=18,
-                    border_radius=18,
-                    bgcolor="#70000000",
+                    padding=22,
+                    expand=True,
                     content=ft.Column(
-                        spacing=10,
+                        alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                        expand=True,
                         controls=[
-                            ft.Text(hair_title, size=22, weight=ft.FontWeight.W_700, color="white"),
-                            ft.Text(hair_desc, size=13, color="#E2E8F0"),
-                            ft.OutlinedButton(
-                                "View details",
-                                style=ft.ButtonStyle(
-                                    color="white",
-                                    side=ft.BorderSide(1, "white"),
-                                    shape=ft.RoundedRectangleBorder(radius=20),
-                                ),
-                                on_click=lambda _: open_detail_dialog(
-                                    page,
-                                    hair_title,
-                                    hair_desc,
-                                    "\n".join(str(n) for n in (hair_payload.get("notes") or []) if n),
+                            ft.Row(
+                                [
+                                    ft.Container(
+                                        padding=ft.Padding.symmetric(horizontal=12, vertical=6),
+                                        border_radius=20,
+                                        bgcolor="#45FFFFFF",
+                                        content=ft.Row(
+                                            [
+                                                ft.Icon(ft.Icons.CONTENT_CUT, color="white", size=16),
+                                                ft.Text("Hairstyle idea", color="white", size=12, weight=ft.FontWeight.W_600),
+                                            ],
+                                            tight=True,
+                                            spacing=6,
+                                        ),
+                                    ),
+                                ]
+                            ),
+                            ft.Container(
+                                padding=18,
+                                border_radius=18,
+                                bgcolor="#80000000",
+                                content=ft.Column(
+                                    spacing=10,
+                                    controls=[
+                                        ft.Text(hair_title, size=22, weight=ft.FontWeight.W_700, color="white"),
+                                        ft.Text(hair_desc, size=13, color="#E2E8F0"),
+                                        ft.OutlinedButton(
+                                            "View details",
+                                            style=ft.ButtonStyle(
+                                                color="white",
+                                                side=ft.BorderSide(1, "white"),
+                                                shape=ft.RoundedRectangleBorder(radius=20),
+                                            ),
+                                            on_click=lambda _: open_detail_dialog(
+                                                page,
+                                                hair_title,
+                                                hair_desc,
+                                                "\n".join(str(n) for n in (hair_payload.get("notes") or []) if n),
+                                            ),
+                                        ),
+                                    ],
                                 ),
                             ),
                         ],
@@ -1291,8 +1268,8 @@ def build_main_view(page: ft.Page) -> ft.View:
         expand=1,
         spacing=12,
         controls=[
-            side_piece_card("Outfit pick", cloth_list[0], 204),
-            side_piece_card("Accessory", acc0, 204),
+            side_piece_card("Outfit pick", cloth_list[0], 204, IMG_DASH_OUTFIT),
+            side_piece_card("Accessory", acc0, 204, IMG_DASH_ACCESSORY),
         ],
     )
 
@@ -1390,7 +1367,7 @@ def build_main_view(page: ft.Page) -> ft.View:
                 ft.Text("Outfits — cuts & palette", size=13, weight=ft.FontWeight.W_600, color=TEXT_MAIN),
                 ft.Text(cuts_display, size=13, color=TEXT_MUTED),
                 ft.Text(palette_note, size=12, color=TEXT_MUTED),
-                build_color_square_row(palette),
+                chic_palette_swatches(palette),
                 ft.Divider(height=1, color="#E2E8F0"),
                 ft.Text("Accessories", size=13, weight=ft.FontWeight.W_600, color=TEXT_MAIN),
                 ft.Text(acc_lines, size=13, color=TEXT_MUTED),
@@ -1413,18 +1390,6 @@ def build_main_view(page: ft.Page) -> ft.View:
         color=TEXT_MUTED,
     )
 
-    community_block = ft.Container(
-        width=1040,
-        content=ft.Column(
-            spacing=10,
-            controls=[
-                ft.Text("Community", size=20, weight=ft.FontWeight.W_700, color=NAVY),
-                ft.Text("Tap the heart to like a look — stored on the server.", size=13, color=TEXT_MUTED),
-                build_community_feed(page, community_posts),
-            ],
-        ),
-    )
-
     analysis_block = ft.Container(
         width=1040,
         content=ft.Column(
@@ -1442,7 +1407,6 @@ def build_main_view(page: ft.Page) -> ft.View:
         controls=[
             dashboard_header,
             plan_card,
-            community_block,
             analysis_block,
         ],
     )
