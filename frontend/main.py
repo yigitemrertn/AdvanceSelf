@@ -7,20 +7,19 @@ def main(page: ft.Page):
     page.theme_mode = ft.ThemeMode.LIGHT
     page.scroll = ft.ScrollMode.AUTO
     page.fonts = {
-        "Playfair Display": "https://fonts.gstatic.com/s/playfairdisplay/v37/nuFvD-vYSZviVYUb_rj3ij__anPXJzDwcbmjWBN2PKdFvXDXbtM.woff2",
-        "Roboto": "https://fonts.gstatic.com/s/roboto/v32/KFOmCnqEu92Fr1Mu4mxKKTU1Kg.woff2",
+        "Inria Serif": "https://raw.githubusercontent.com/google/fonts/main/ofl/inriaserif/InriaSerif-Regular.ttf",
     }
-    
+        
     HEADER_BG = "#d8cdad"
     TEXT_RED = "#f85e5e"
     CARD_BG = "#fa4040"
     TEXT_DARK = "#222222"
     
     def serif(text, size=28, color=TEXT_RED, text_align=ft.TextAlign.CENTER):
-        return ft.Text(text, size=size, color=color, font_family="Playfair Display", text_align=text_align)
+        return ft.Text(text, size=size, color=color, font_family="Inria Serif", text_align=text_align)
         
     def sans(text, size=15, color=TEXT_DARK, text_align=ft.TextAlign.CENTER):
-        return ft.Text(text, size=size, color=color, font_family="Roboto", text_align=text_align)
+        return ft.Text(text, size=size, color=color, font_family="Inria Serif", text_align=text_align)
 
     # HEADER
     header = ft.Container(
@@ -33,21 +32,21 @@ def main(page: ft.Page):
                     spacing=10,
                     vertical_alignment=ft.CrossAxisAlignment.END,
                     controls=[
-                        ft.Text("Advance Self", size=32, color="#ffffff", font_family="Playfair Display"),
-                        ft.Text("Improve Your Image", size=18, color="#ffffff", opacity=0.7, font_family="Playfair Display", italic=True),
+                        ft.Text("Advance Self", size=32, color="#ffffff", font_family="Inria Serif"),
+                        ft.Text("Improve Your Image", size=18, color="#ffffff", opacity=0.7, font_family="Inria Serif", italic=True),
                     ]
                 ),
                 ft.Row(
                     spacing=15,
                     controls=[
                         ft.Container(
-                            content=ft.Text("Survey", color="#ffffff", size=15, font_family="Roboto"),
+                            content=ft.Text("Survey", color="#ffffff", size=15, font_family="Inria Serif"),
                             bgcolor="#c4b281",
                             padding=ft.Padding.symmetric(horizontal=25, vertical=8),
                             border_radius=20,
                         ),
                         ft.Container(
-                            content=ft.Text("i", color="#ffffff", size=18, font_family="Playfair Display", italic=True),
+                            content=ft.Text("i", color="#ffffff", size=18, font_family="Inria Serif", italic=True),
                             bgcolor="#c4b281",
                             width=36,
                             height=36,
@@ -70,8 +69,8 @@ def main(page: ft.Page):
             spacing=10,
             vertical_alignment=ft.CrossAxisAlignment.END,
             controls=[
-                ft.Text("Advance Self", size=26, color="#ffffff", font_family="Playfair Display"),
-                ft.Text("Improve Your Image", size=15, color="#ffffff", opacity=0.7, font_family="Playfair Display", italic=True),
+                ft.Text("Advance Self", size=26, color="#ffffff", font_family="Inria Serif"),
+                ft.Text("Improve Your Image", size=15, color="#ffffff", opacity=0.7, font_family="Inria Serif", italic=True),
             ]
         )
     )
@@ -83,7 +82,7 @@ def main(page: ft.Page):
             height=300,
             border_radius=8,
             alignment=ft.Alignment(0, 0),
-            content=ft.Text("this is a card\ngoing to add\na picture", size=16, color="#ffffff", text_align=ft.TextAlign.CENTER, font_family="Roboto")
+            content=ft.Text("this is a card\ngoing to add\na picture", size=16, color="#ffffff", text_align=ft.TextAlign.CENTER, font_family="Inria Serif")
         )
 
     def card_row():
@@ -109,16 +108,16 @@ def main(page: ft.Page):
                         serif("Welcome dear, {username}", size=36),
                         ft.Text(
                             spans=[
-                                ft.TextSpan("Here some advises and what you should do about your image,\nIt looks like you want to be dressed as ", ft.TextStyle(font_family="Roboto", color=TEXT_DARK, size=16)),
-                                ft.TextSpan("[preferred style of users].", ft.TextStyle(font_family="Roboto", color=TEXT_RED, size=16)),
+                                ft.TextSpan("Here some advises and what you should do about your image,\nIt looks like you want to be dressed as ", ft.TextStyle(font_family="Inria Serif", color=TEXT_DARK, size=16)),
+                                ft.TextSpan("[preferred style of users].", ft.TextStyle(font_family="Inria Serif", color=TEXT_RED, size=16)),
                             ],
                             text_align=ft.TextAlign.CENTER
                         ),
                         ft.Container(height=5),
                         ft.Text(
                             spans=[
-                                ft.TextSpan("Maybe you could wanna know what is your style:\n", ft.TextStyle(font_family="Roboto", color=TEXT_DARK, size=16)),
-                                ft.TextSpan("[description of style]", ft.TextStyle(font_family="Roboto", color=TEXT_RED, size=16)),
+                                ft.TextSpan("Maybe you could wanna know what is your style:\n", ft.TextStyle(font_family="Inria Serif", color=TEXT_DARK, size=16)),
+                                ft.TextSpan("[description of style]", ft.TextStyle(font_family="Inria Serif", color=TEXT_RED, size=16)),
                             ],
                             text_align=ft.TextAlign.CENTER
                         ),
@@ -149,8 +148,8 @@ def main(page: ft.Page):
                         sans("Outfit choices is might be complicated at the start but no worries AdvanceSelf got your back.", size=16),
                         ft.Text(
                             spans=[
-                                ft.TextSpan("you can wear this kind of nut shells for guarantee: ", ft.TextStyle(font_family="Roboto", color=TEXT_DARK, size=16)),
-                                ft.TextSpan("[cuts]", ft.TextStyle(font_family="Roboto", color=TEXT_RED, size=16)),
+                                ft.TextSpan("you can wear this kind of nut shells for guarantee: ", ft.TextStyle(font_family="Inria Serif", color=TEXT_DARK, size=16)),
+                                ft.TextSpan("[cuts]", ft.TextStyle(font_family="Inria Serif", color=TEXT_RED, size=16)),
                             ],
                             text_align=ft.TextAlign.CENTER
                         ),
