@@ -1,5 +1,6 @@
 import flet as ft
 import time
+import json
 
 HEADER_BG = "#d8cdad"
 TEXT_RED = "#f85e5e"
@@ -62,7 +63,7 @@ def build_login_view(page: ft.Page) -> ft.View:
             color="#ffffff",
         ),
         content=ft.Text("Login / Sign Up", size=19, font_family="Inria Serif", color="#ffffff"),
-        on_click=lambda _: page.go("/main")
+        on_click=lambda _: page.go("/survey")
     )
 
     content = ft.Column(
@@ -93,6 +94,140 @@ def build_login_view(page: ft.Page) -> ft.View:
         ]
     )
 
+def build_survey_view(page: ft.Page) -> ft.View:
+    face_shapes = ["Oval", "Round", "Square", "Heart", "Diamond", "Oblong", "Triangle"]
+    
+    # We will just pass lists of strings to our custom dropdown
+    face_options = face_shapes
+    try:
+        with open("backend/styles.json", "r", encoding="utf-8") as f:
+            styles_data = json.load(f)
+            style_options = [d["name"] for d in styles_data if "name" in d]
+    except Exception:
+        style_options = ["Error loading styles"]
+
+    def make_field(label, numeric=False):
+        return ft.TextField(
+            label=label,
+            border_radius=8, border_color=HEADER_BG, cursor_color=TEXT_RED,
+            width=300,
+            keyboard_type=ft.KeyboardType.NUMBER if numeric else ft.KeyboardType.TEXT,
+            text_style=ft.TextStyle(font_family="Inria Serif"),
+            label_style=ft.TextStyle(font_family="Inria Serif", color=TEXT_DARK)
+        )
+        
+    def make_searchable_dropdown(label, options):
+        text_field = ft.TextField(
+            label=label,
+            border_radius=8, border_color=HEADER_BG, cursor_color=TEXT_RED,
+            width=300,
+            text_style=ft.TextStyle(font_family="Inria Serif"),
+            label_style=ft.TextStyle(font_family="Inria Serif", color=TEXT_DARK)
+        )
+        
+        list_view = ft.ListView(spacing=0, height=150)
+        
+        container = ft.Container(
+            content=list_view,
+            width=300,
+            bgcolor="#ffffff",
+            border=ft.border.all(1, HEADER_BG),
+            border_radius=8,
+            visible=False,
+            padding=5
+        )
+        
+        def select_option(opt):
+            text_field.value = opt
+            container.visible = False
+            text_field.update()
+            container.update()
+
+        def update_options(search_term):
+            filtered = [opt for opt in options if search_term.lower() in opt.lower()]
+            list_view.controls.clear()
+            for opt in filtered:
+                def make_click(o):
+                    return lambda _: select_option(o)
+                list_view.controls.append(
+                    ft.Container(
+                        content=ft.Text(opt, color=TEXT_DARK, font_family="Inria Serif", size=16),
+                        padding=10,
+                        on_click=make_click(opt),
+                        ink=True,
+                        border_radius=4
+                    )
+                )
+
+        def on_change(e):
+            val = e.control.value or ""
+            update_options(val)
+            container.visible = True if len(list_view.controls) > 0 else False
+            container.update()
+            
+        def on_focus(e):
+            val = e.control.value or ""
+            update_options(val)
+            container.visible = True if len(list_view.controls) > 0 else False
+            container.update()
+            
+        text_field.on_change = on_change
+        text_field.on_focus = on_focus
+        
+        return ft.Column([text_field, container], spacing=0, horizontal_alignment=ft.CrossAxisAlignment.CENTER)
+
+    content = ft.Column(
+        alignment=ft.MainAxisAlignment.CENTER,
+        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+        spacing=15,
+        controls=[
+            serif("Advance Self", size=45),
+            ft.Text("Tell us about yourself", size=21, color=TEXT_DARK, opacity=0.7, font_family="Inria Serif", italic=True),
+            ft.Container(height=10),
+            
+            ft.RadioGroup(
+                content=ft.Row(
+                    alignment=ft.MainAxisAlignment.CENTER,
+                    controls=[
+                        ft.Radio(value="male", label="Male", fill_color=TEXT_RED),
+                        ft.Radio(value="female", label="Female", fill_color=TEXT_RED)
+                    ]
+                )
+            ),
+            
+            make_field("Height (cm)", numeric=True),
+            make_field("Weight (kg)", numeric=True),
+            make_field("Age", numeric=True),
+            
+            make_searchable_dropdown("Face Shape", face_options),
+            make_searchable_dropdown("Preferred Style", style_options),
+            
+            ft.Container(height=10),
+            ft.ElevatedButton(
+                bgcolor=CARD_BG,
+                width=300, height=50,
+                style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=8), color="#ffffff"),
+                content=ft.Text("Complete", size=19, font_family="Inria Serif", color="#ffffff"),
+                on_click=lambda _: page.go("/main")
+            )
+        ]
+    )
+
+    return ft.View(
+        route="/survey",
+        padding=0,
+        bgcolor="#e6e6e6",
+        scroll=ft.ScrollMode.AUTO,
+        controls=[
+            ft.Container(
+                expand=True,
+                alignment=ft.Alignment(0, 0),
+                padding=ft.Padding(0, 40, 0, 40),
+                content=content
+            )
+        ]
+    )
+
 def build_main_view(page: ft.Page) -> ft.View:
     # HEADER
     header = ft.Container(
@@ -118,6 +253,7 @@ def build_main_view(page: ft.Page) -> ft.View:
                             bgcolor="#c4b281",
                             padding=ft.Padding.symmetric(horizontal=25, vertical=8),
                             border_radius=20,
+                            on_click=lambda _: page.go("/survey")
                         ),
                         ft.Container(
                             content=ft.Text("i", color="#ffffff", size=21, font_family="Inria Serif", italic=True),
@@ -302,6 +438,8 @@ def main(page: ft.Page):
         
         if page.route == "/login":
             page.views.append(build_login_view(page))
+        elif page.route == "/survey":
+            page.views.append(build_survey_view(page))
         elif page.route == "/main":
             page.views.append(build_main_view(page))
             
