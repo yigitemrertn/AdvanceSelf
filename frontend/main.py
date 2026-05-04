@@ -1,6 +1,30 @@
 import flet as ft
 import time
 import json
+import os
+
+CONFIG_FILE = "user_config.json"
+
+def load_config():
+    if os.path.exists(CONFIG_FILE):
+        try:
+            with open(CONFIG_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            return {}
+    return {}
+
+def save_config(config_data):
+    with open(CONFIG_FILE, "w", encoding="utf-8") as f:
+        json.dump(config_data, f, indent=4)
+
+def is_config_complete():
+    config = load_config()
+    required_keys = ["gender", "height", "weight", "face_shape", "preferred_style"]
+    for key in required_keys:
+        if not config.get(key):
+            return False
+    return True
 
 HEADER_BG = "#d8cdad"
 TEXT_RED = "#f85e5e"
@@ -33,9 +57,8 @@ def card_row():
 
 def build_survey_view(page: ft.Page) -> ft.View:
     face_shapes = ["Oval", "Round", "Square", "Heart", "Diamond", "Oblong", "Triangle"]
-    
-    # We will just pass lists of strings to our custom dropdown
     face_options = face_shapes
+    
     try:
         with open("backend/styles.json", "r", encoding="utf-8") as f:
             styles_data = json.load(f)
@@ -46,32 +69,47 @@ def build_survey_view(page: ft.Page) -> ft.View:
     def make_field(label, numeric=False):
         return ft.TextField(
             label=label,
-            border_radius=8, border_color=HEADER_BG, cursor_color=TEXT_RED,
-            width=300,
+            border_radius=12,
+            border_color="#d8cdad",
+            cursor_color="#f85e5e",
+            bgcolor="#ffffff",
+            color="#222222",
+            width=320,
             keyboard_type=ft.KeyboardType.NUMBER if numeric else ft.KeyboardType.TEXT,
-            text_style=ft.TextStyle(font_family="Inria Serif"),
-            label_style=ft.TextStyle(font_family="Inria Serif", color=TEXT_DARK)
+            text_style=ft.TextStyle(font_family="Inria Serif", size=16),
+            label_style=ft.TextStyle(font_family="Inria Serif", color="#888888"),
+            content_padding=ft.Padding(left=20, top=15, right=20, bottom=15),
         )
         
     def make_searchable_dropdown(label, options):
         text_field = ft.TextField(
             label=label,
-            border_radius=8, border_color=HEADER_BG, cursor_color=TEXT_RED,
-            width=300,
-            text_style=ft.TextStyle(font_family="Inria Serif"),
-            label_style=ft.TextStyle(font_family="Inria Serif", color=TEXT_DARK)
+            border_radius=12,
+            border_color="#d8cdad",
+            cursor_color="#f85e5e",
+            bgcolor="#ffffff",
+            color="#222222",
+            width=320,
+            text_style=ft.TextStyle(font_family="Inria Serif", size=16),
+            label_style=ft.TextStyle(font_family="Inria Serif", color="#888888"),
+            content_padding=ft.Padding(left=20, top=15, right=20, bottom=15),
         )
         
         list_view = ft.ListView(spacing=0, height=150)
         
         container = ft.Container(
             content=list_view,
-            width=300,
+            width=320,
             bgcolor="#ffffff",
-            border=ft.border.all(1, HEADER_BG),
-            border_radius=8,
+            border=ft.Border.all(1, "#f0f0f0"),
+            border_radius=12,
             visible=False,
-            padding=5
+            padding=5,
+            shadow=ft.BoxShadow(
+                blur_radius=15,
+                color=ft.Colors.with_opacity(0.1, "#000000"),
+                offset=ft.Offset(0, 5)
+            ),
         )
         
         def select_option(opt):
@@ -88,11 +126,11 @@ def build_survey_view(page: ft.Page) -> ft.View:
                     return lambda _: select_option(o)
                 list_view.controls.append(
                     ft.Container(
-                        content=ft.Text(opt, color=TEXT_DARK, font_family="Inria Serif", size=16),
-                        padding=10,
+                        content=ft.Text(opt, color="#222222", font_family="Inria Serif", size=15),
+                        padding=ft.Padding(left=15, top=12, right=15, bottom=12),
                         on_click=make_click(opt),
                         ink=True,
-                        border_radius=4
+                        border_radius=8
                     )
                 )
 
@@ -111,56 +149,124 @@ def build_survey_view(page: ft.Page) -> ft.View:
         text_field.on_change = on_change
         text_field.on_focus = on_focus
         
-        return ft.Column([text_field, container], spacing=0, horizontal_alignment=ft.CrossAxisAlignment.CENTER)
+        return ft.Column([text_field, container], spacing=0, horizontal_alignment=ft.CrossAxisAlignment.CENTER), text_field
 
-    content = ft.Column(
+    gender_group = ft.RadioGroup(
+        content=ft.Row(
+            alignment=ft.MainAxisAlignment.CENTER,
+            spacing=40,
+            controls=[
+                ft.Radio(value="male", label="Male", fill_color="#f85e5e", label_style=ft.TextStyle(font_family="Inria Serif", size=16, color="#444444")),
+                ft.Radio(value="female", label="Female", fill_color="#f85e5e", label_style=ft.TextStyle(font_family="Inria Serif", size=16, color="#444444"))
+            ]
+        )
+    )
+    
+    height_field = make_field("Height (cm)", numeric=True)
+    weight_field = make_field("Weight (kg)", numeric=True)
+    
+    face_col, face_field = make_searchable_dropdown("Face Shape", face_options)
+    style_col, style_field = make_searchable_dropdown("Preferred Style", style_options)
+
+    def on_complete(e):
+        if not gender_group.value or not height_field.value or not weight_field.value or not face_field.value or not style_field.value:
+            snack = ft.SnackBar(
+                content=ft.Text("Please fill all fields before completing!", color="#ffffff", font_family="Inria Serif"),
+                bgcolor="#f85e5e",
+                behavior=ft.SnackBarBehavior.FLOATING,
+                margin=20
+            )
+            try:
+                page.open(snack)
+            except AttributeError:
+                page.snack_bar = snack
+                page.snack_bar.open = True
+                page.update()
+            return
+
+        config_data = load_config()
+        config_data.update({
+            "gender": gender_group.value,
+            "height": height_field.value,
+            "weight": weight_field.value,
+            "face_shape": face_field.value,
+            "preferred_style": style_field.value
+        })
+        save_config(config_data)
+        page.go("/main")
+
+    complete_btn = ft.Container(
+        content=ft.Text("Complete Profile", size=18, font_family="Inria Serif", color="#ffffff", weight=ft.FontWeight.W_600),
+        alignment=ft.Alignment(0, 0),
+        width=320,
+        height=55,
+        bgcolor="#f85e5e",
+        border_radius=12,
+        ink=True,
+        on_click=on_complete,
+        shadow=ft.BoxShadow(
+            blur_radius=15,
+            color=ft.Colors.with_opacity(0.4, "#f85e5e"),
+            offset=ft.Offset(0, 5)
+        )
+    )
+
+    form_content = ft.Column(
         alignment=ft.MainAxisAlignment.CENTER,
         horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-        spacing=15,
+        spacing=20,
         controls=[
-            serif("Advance Self", size=45),
-            ft.Text("Tell us about yourself", size=21, color=TEXT_DARK, opacity=0.7, font_family="Inria Serif", italic=True),
-            ft.Container(height=10),
-            
-            ft.RadioGroup(
-                content=ft.Row(
-                    alignment=ft.MainAxisAlignment.CENTER,
+            ft.Container(
+                content=ft.Column(
+                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                    spacing=5,
                     controls=[
-                        ft.Radio(value="male", label="Male", fill_color=TEXT_RED),
-                        ft.Radio(value="female", label="Female", fill_color=TEXT_RED)
+                        serif("Advance Self", size=42),
+                        ft.Text("Craft your perfect aesthetic.", size=17, color="#777777", font_family="Inria Serif", italic=True),
                     ]
-                )
+                ),
+                padding=ft.Padding(left=0, top=0, right=0, bottom=15)
             ),
-            
-            make_field("Height (cm)", numeric=True),
-            make_field("Weight (kg)", numeric=True),
-            make_field("Age", numeric=True),
-            
-            make_searchable_dropdown("Face Shape", face_options),
-            make_searchable_dropdown("Preferred Style", style_options),
-            
+            gender_group,
+            height_field,
+            weight_field,
+            face_col,
+            style_col,
             ft.Container(height=10),
-            ft.ElevatedButton(
-                bgcolor=CARD_BG,
-                width=300, height=50,
-                style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=8), color="#ffffff"),
-                content=ft.Text("Complete", size=19, font_family="Inria Serif", color="#ffffff"),
-                on_click=lambda _: page.go("/main")
-            )
+            complete_btn
         ]
+    )
+
+    survey_card = ft.Container(
+        content=form_content,
+        bgcolor="#ffffff",
+        border_radius=24,
+        padding=ft.Padding(left=50, top=40, right=50, bottom=40),
+        width=480,
+        shadow=ft.BoxShadow(
+            spread_radius=0,
+            blur_radius=30,
+            color=ft.Colors.with_opacity(0.08, "#000000"),
+            offset=ft.Offset(0, 10)
+        ),
+        alignment=ft.Alignment(0, 0)
     )
 
     return ft.View(
         route="/survey",
         padding=0,
-        bgcolor="#e6e6e6",
         scroll=ft.ScrollMode.AUTO,
         controls=[
             ft.Container(
                 expand=True,
                 alignment=ft.Alignment(0, 0),
                 padding=ft.Padding(0, 40, 0, 40),
-                content=content
+                gradient=ft.LinearGradient(
+                    begin=ft.Alignment(-1, -1),
+                    end=ft.Alignment(1, 1),
+                    colors=["#faf9f6", "#d8cdad"]
+                ),
+                content=survey_card
             )
         ]
     )
@@ -170,7 +276,7 @@ def build_main_view(page: ft.Page) -> ft.View:
     header = ft.Container(
         left=0, right=0, top=0,
         bgcolor=HEADER_BG,
-        padding=ft.Padding.symmetric(horizontal=40, vertical=20),
+        padding=ft.Padding(left=40, top=20, right=40, bottom=20),
         content=ft.Row(
             alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
             controls=[
@@ -188,7 +294,7 @@ def build_main_view(page: ft.Page) -> ft.View:
                         ft.Container(
                             content=ft.Text("Survey", color="#ffffff", size=18, font_family="Inria Serif"),
                             bgcolor="#c4b281",
-                            padding=ft.Padding.symmetric(horizontal=25, vertical=8),
+                            padding=ft.Padding(left=25, top=8, right=25, bottom=8),
                             border_radius=20,
                             on_click=lambda _: page.go("/survey")
                         ),
@@ -202,7 +308,7 @@ def build_main_view(page: ft.Page) -> ft.View:
     footer = ft.Container(
         left=0, right=0, bottom=0,
         bgcolor=HEADER_BG,
-        padding=ft.Padding.symmetric(horizontal=40, vertical=20),
+        padding=ft.Padding(left=40, top=20, right=40, bottom=20),
         alignment=ft.Alignment(1, 0),
         content=ft.Row(
             alignment=ft.MainAxisAlignment.END,
@@ -372,7 +478,10 @@ def main(page: ft.Page):
         page.update()
 
     page.on_route_change = route_change
-    page.go("/survey")
+    if is_config_complete():
+        page.go("/main")
+    else:
+        page.go("/survey")
 
 if __name__ == "__main__":
     ft.run(main)
