@@ -31,69 +31,6 @@ def card_row():
         controls=[red_card(), red_card(), red_card()]
     )
 
-def build_login_view(page: ft.Page) -> ft.View:
-    username_input = ft.TextField(
-        label="Username",
-        border_radius=8,
-        border_color=HEADER_BG,
-        cursor_color=TEXT_RED,
-        width=300,
-        text_style=ft.TextStyle(font_family="Inria Serif"),
-        label_style=ft.TextStyle(font_family="Inria Serif", color=TEXT_DARK)
-    )
-    
-    password_input = ft.TextField(
-        label="Password",
-        password=True,
-        can_reveal_password=True,
-        border_radius=8,
-        border_color=HEADER_BG,
-        cursor_color=TEXT_RED,
-        width=300,
-        text_style=ft.TextStyle(font_family="Inria Serif"),
-        label_style=ft.TextStyle(font_family="Inria Serif", color=TEXT_DARK)
-    )
-
-    login_btn = ft.ElevatedButton(
-        bgcolor=CARD_BG,
-        width=300,
-        height=50,
-        style=ft.ButtonStyle(
-            shape=ft.RoundedRectangleBorder(radius=8),
-            color="#ffffff",
-        ),
-        content=ft.Text("Login / Sign Up", size=19, font_family="Inria Serif", color="#ffffff"),
-        on_click=lambda _: page.go("/survey")
-    )
-
-    content = ft.Column(
-        alignment=ft.MainAxisAlignment.CENTER,
-        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-        spacing=20,
-        controls=[
-            serif("Advance Self", size=45),
-            ft.Text("Improve Your Image", size=21, color=TEXT_DARK, opacity=0.7, font_family="Inria Serif", italic=True),
-            ft.Container(height=30),
-            username_input,
-            password_input,
-            ft.Container(height=10),
-            login_btn
-        ]
-    )
-
-    return ft.View(
-        route="/login",
-        padding=0,
-        bgcolor="#e6e6e6",
-        controls=[
-            ft.Container(
-                expand=True,
-                alignment=ft.Alignment(0, 0),
-                content=content
-            )
-        ]
-    )
-
 def build_survey_view(page: ft.Page) -> ft.View:
     face_shapes = ["Oval", "Round", "Square", "Heart", "Diamond", "Oblong", "Triangle"]
     
@@ -254,15 +191,6 @@ def build_main_view(page: ft.Page) -> ft.View:
                             padding=ft.Padding.symmetric(horizontal=25, vertical=8),
                             border_radius=20,
                             on_click=lambda _: page.go("/survey")
-                        ),
-                        ft.Container(
-                            content=ft.Text("i", color="#ffffff", size=21, font_family="Inria Serif", italic=True),
-                            bgcolor="#c4b281",
-                            width=36,
-                            height=36,
-                            border_radius=18,
-                            alignment=ft.Alignment(0, 0),
-                            on_click=lambda _: page.go("/login")
                         ),
                     ]
                 )
@@ -436,9 +364,7 @@ def main(page: ft.Page):
     def route_change(route):
         page.views.clear()
         
-        if page.route == "/login":
-            page.views.append(build_login_view(page))
-        elif page.route == "/survey":
+        if page.route == "/survey":
             page.views.append(build_survey_view(page))
         elif page.route == "/main":
             page.views.append(build_main_view(page))
@@ -446,7 +372,7 @@ def main(page: ft.Page):
         page.update()
 
     page.on_route_change = route_change
-    page.go("/login")
+    page.go("/survey")
 
 if __name__ == "__main__":
     ft.run(main)

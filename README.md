@@ -53,7 +53,7 @@ All data exchange between frontend, backend, and LLM is **strict JSON**.
 
 | Route | Page |
 |---|---|
-| `/login` | Email/password login |
+
 | `/register` | Account creation |
 | `/dashboard` | Home with style identity banner |
 | `/dashboard/chat` | AI style advisor chat |
@@ -167,7 +167,7 @@ The `LLMService` class (`backend/app/llm_service.py`) handles all AI interaction
 
 ```
 POST   /api/v1/auth/register
-POST   /api/v1/auth/login
+
 GET    /api/v1/auth/me
 
 GET    /api/v1/profile/
