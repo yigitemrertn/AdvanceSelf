@@ -89,3 +89,17 @@ class CommunityPostOut(BaseModel):
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class ImageAnalysisOut(BaseModel):
+    id: int
+    file_name: str
+    dominant_vibe: str
+    face_shape_hint: str | None = None
+    fit_feedback: str
+    style_score: int
+    color_suggestions: list[str] = []
+    next_actions: list[str] = []
+    created_at: datetime
+
+    model_config = {"from_attributes": True}

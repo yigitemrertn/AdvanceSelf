@@ -50,7 +50,7 @@ def cover_image(
         expand=expand,
         border_radius=border_radius,
         clip_behavior=ft.ClipBehavior.ANTI_ALIAS,
-        content=ft.Image(src=src, fit=ft.ImageFit.COVER, expand=True, width=width, height=height),
+        content=ft.Image(src=src, fit=ft.BoxFit.COVER, expand=True, width=width, height=height),
     )
 
 
@@ -239,6 +239,20 @@ def analyze_uploaded_image(image_bytes: bytes, filename: str) -> dict:
     payload = response.json()
     APP_STATE["image_analysis"] = payload
     return payload
+
+
+def fetch_analysis_from_api() -> dict | None:
+    """Fetch the latest image analysis from the backend."""
+    try:
+        resp = requests.get(f"{API_BASE_URL}/image/analysis", headers=api_headers(), timeout=12)
+        if resp.status_code == 404:
+            return None
+        resp.raise_for_status()
+        data = resp.json().get("analysis", {})
+        APP_STATE["image_analysis"] = {"analysis": data}
+        return data
+    except requests.RequestException:
+        return None
 
 
 def has_completed_profile() -> bool:
@@ -452,7 +466,7 @@ def build_landing_view(page: ft.Page) -> ft.View:
         clip_behavior=ft.ClipBehavior.ANTI_ALIAS,
         content=ft.Stack(
             [
-                ft.Image(src=IMG_LANDING_HERO, fit=ft.ImageFit.COVER, expand=True, height=420),
+                ft.Image(src=IMG_LANDING_HERO, fit=ft.BoxFit.COVER, expand=True, height=420),
                 ft.Container(
                     expand=True,
                     gradient=ft.LinearGradient(
@@ -684,7 +698,7 @@ def build_login_view(page: ft.Page) -> ft.View:
         clip_behavior=ft.ClipBehavior.ANTI_ALIAS,
         content=ft.Stack(
             [
-                ft.Image(src=IMG_LOGIN_HERO, fit=ft.ImageFit.COVER, expand=True, height=640),
+                ft.Image(src=IMG_LOGIN_HERO, fit=ft.BoxFit.COVER, expand=True, height=640),
                 ft.Container(
                     expand=True,
                     gradient=ft.LinearGradient(
@@ -1096,18 +1110,14 @@ def build_main_view(page: ft.Page) -> ft.View:
             blob = getattr(pf, "bytes", None)
             if blob:
                 analyze_uploaded_image(blob, name)
-                analysis_feedback.value = "Photo analyzed successfully."
-                analysis_feedback.color = SUCCESS
-                page.update()
+                navigate(page, "/analysis")
                 return
 
             path_attr = getattr(pf, "path", None)
             if path_attr:
                 with open(path_attr, "rb") as image_file:
                     analyze_uploaded_image(image_file.read(), name)
-                analysis_feedback.value = "Photo analyzed successfully."
-                analysis_feedback.color = SUCCESS
-                page.update()
+                navigate(page, "/analysis")
                 return
 
             analysis_feedback.value = "Could not read selected photo (with_data/path missing)."
@@ -1184,7 +1194,7 @@ def build_main_view(page: ft.Page) -> ft.View:
                         expand=True,
                         border_radius=14,
                         clip_behavior=ft.ClipBehavior.ANTI_ALIAS,
-                        content=ft.Image(src=photo, fit=ft.ImageFit.COVER, expand=True),
+                        content=ft.Image(src=photo, fit=ft.BoxFit.COVER, expand=True),
                     ),
                 ],
             ),
@@ -1197,7 +1207,7 @@ def build_main_view(page: ft.Page) -> ft.View:
         clip_behavior=ft.ClipBehavior.ANTI_ALIAS,
         content=ft.Stack(
             [
-                ft.Image(src=IMG_DASH_HAIR, fit=ft.ImageFit.COVER, expand=True, height=440),
+                ft.Image(src=IMG_DASH_HAIR, fit=ft.BoxFit.COVER, expand=True, height=440),
                 ft.Container(
                     expand=True,
                     gradient=ft.LinearGradient(
@@ -1326,6 +1336,13 @@ def build_main_view(page: ft.Page) -> ft.View:
                                     style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=24)),
                                     on_click=on_upload_click,
                                 ),
+                                ft.FilledButton(
+                                    "View Analysis Results",
+                                    bgcolor=ACCENT,
+                                    color="white",
+                                    style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=24)),
+                                    on_click=lambda _: navigate(page, "/analysis"),
+                                ),
                                 ft.OutlinedButton(
                                     "Edit survey",
                                     style=ft.ButtonStyle(
@@ -1426,6 +1443,337 @@ def build_main_view(page: ft.Page) -> ft.View:
     )
 
 
+def build_analysis_view(page: ft.Page) -> ft.View:
+    """Dedicated analysis results screen."""
+    if not APP_STATE.get("token"):
+        navigate(page, "/login")
+        return ft.View(route="/analysis", bgcolor=BG_COLOR, controls=[ft.Container()])
+
+    # Try to get analysis data from APP_STATE or fetch from API
+    analysis_data = (APP_STATE.get("image_analysis") or {}).get("analysis", {})
+    if not analysis_data:
+        fetched = fetch_analysis_from_api()
+        if fetched:
+            analysis_data = fetched
+
+    if not analysis_data:
+        # No analysis yet — show an empty state
+        empty_body = ft.Column(
+            spacing=0,
+            expand=True,
+            controls=[
+                build_top_nav(page, for_app=True),
+                ft.Container(
+                    expand=True,
+                    alignment=ft.Alignment(0, 0),
+                    content=ft.Column(
+                        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                        alignment=ft.MainAxisAlignment.CENTER,
+                        spacing=20,
+                        controls=[
+                            ft.Icon(ft.Icons.IMAGE_SEARCH, size=64, color=TEXT_MUTED),
+                            ft.Text("No analysis yet", size=24, weight=ft.FontWeight.W_700, color=NAVY),
+                            ft.Text(
+                                "Upload a photo from the dashboard to get personalized style insights.",
+                                size=14,
+                                color=TEXT_MUTED,
+                                text_align=ft.TextAlign.CENTER,
+                            ),
+                            ft.FilledButton(
+                                "Go to Dashboard",
+                                bgcolor=PRIMARY,
+                                color="white",
+                                style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=24)),
+                                on_click=lambda _: navigate(page, "/main"),
+                            ),
+                        ],
+                    ),
+                ),
+            ],
+        )
+        return ft.View(route="/analysis", bgcolor=BG_COLOR, padding=0, scroll=ft.ScrollMode.AUTO, controls=[empty_body])
+
+    dominant_vibe = analysis_data.get("dominant_vibe", "—")
+    fit_feedback = analysis_data.get("fit_feedback", "No feedback available.")
+    face_shape_hint = analysis_data.get("face_shape_hint", "—")
+    style_score = analysis_data.get("style_score", 0)
+    color_suggestions = analysis_data.get("color_suggestions", [])
+    next_actions = analysis_data.get("next_actions", [])
+
+    # Score color
+    if style_score >= 85:
+        score_color = SUCCESS
+        score_label = "Excellent Match"
+    elif style_score >= 70:
+        score_color = "#F59E0B"
+        score_label = "Good Match"
+    else:
+        score_color = ERROR
+        score_label = "Room to Improve"
+
+    # --- Hero Score Card ---
+    score_card = ft.Container(
+        width=1000,
+        padding=32,
+        border_radius=24,
+        gradient=ft.LinearGradient(
+            begin=ft.Alignment(-1, -1),
+            end=ft.Alignment(1, 1),
+            colors=["#1e1b4b", "#4c1d95", "#7c3aed"],
+        ),
+        shadow=ft.BoxShadow(blur_radius=30, color="#30000040", offset=ft.Offset(0, 12)),
+        content=ft.Row(
+            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+            vertical_alignment=ft.CrossAxisAlignment.CENTER,
+            controls=[
+                ft.Column(
+                    spacing=8,
+                    controls=[
+                        ft.Container(
+                            padding=ft.Padding.symmetric(horizontal=14, vertical=6),
+                            border_radius=16,
+                            bgcolor="#35FFFFFF",
+                            content=ft.Text("STYLE ANALYSIS RESULT", size=11, weight=ft.FontWeight.W_700, color="#E2E8F0"),
+                        ),
+                        ft.Text("Your Style Score", size=28, weight=ft.FontWeight.W_800, color="white"),
+                        ft.Text(fit_feedback, size=14, color="#CBD5E1", width=550),
+                    ],
+                ),
+                ft.Container(
+                    width=120,
+                    height=120,
+                    border_radius=60,
+                    bgcolor="#25FFFFFF",
+                    border=ft.border.all(4, score_color),
+                    alignment=ft.Alignment(0, 0),
+                    content=ft.Column(
+                        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                        alignment=ft.MainAxisAlignment.CENTER,
+                        spacing=2,
+                        tight=True,
+                        controls=[
+                            ft.Text(f"{style_score}%", size=32, weight=ft.FontWeight.W_800, color="white"),
+                            ft.Text(score_label, size=10, weight=ft.FontWeight.W_600, color=score_color),
+                        ],
+                    ),
+                ),
+            ],
+        ),
+    )
+
+    # --- Vibe & Face Shape Cards ---
+    def analysis_info_card(icon, title: str, value: str, description: str) -> ft.Container:
+        return ft.Container(
+            expand=1,
+            padding=22,
+            border_radius=20,
+            bgcolor=SURFACE,
+            border=ft.border.all(1, "#E8E0F5"),
+            shadow=ft.BoxShadow(blur_radius=16, color="#1200000a", offset=ft.Offset(0, 6)),
+            content=ft.Column(
+                spacing=10,
+                controls=[
+                    ft.Container(
+                        width=48,
+                        height=48,
+                        border_radius=14,
+                        bgcolor=LAVENDER_SOFT,
+                        alignment=ft.Alignment(0, 0),
+                        content=ft.Icon(icon, color=PRIMARY, size=24),
+                    ),
+                    ft.Text(title, size=12, weight=ft.FontWeight.W_600, color=TEXT_MUTED),
+                    ft.Text(value, size=20, weight=ft.FontWeight.W_700, color=NAVY),
+                    ft.Text(description, size=12, color=TEXT_MUTED, max_lines=3),
+                ],
+            ),
+        )
+
+    info_row = ft.Row(
+        spacing=16,
+        controls=[
+            analysis_info_card(
+                ft.Icons.STYLE,
+                "Dominant Vibe",
+                dominant_vibe,
+                f"Your overall aesthetic aligns with {dominant_vibe} principles.",
+            ),
+            analysis_info_card(
+                ft.Icons.FACE,
+                "Face Shape",
+                face_shape_hint.split(".")[0] if face_shape_hint else "—",
+                face_shape_hint or "Upload a photo for face shape analysis.",
+            ),
+            analysis_info_card(
+                ft.Icons.INSIGHTS,
+                "Compatibility",
+                f"{style_score}%",
+                f"Your photo has a {score_label.lower()} with your target style.",
+            ),
+        ],
+    )
+
+    # --- Color Palette Section ---
+    palette_controls: list[ft.Control] = []
+    for c in color_suggestions:
+        safe = c if isinstance(c, str) and c.startswith("#") and len(c) >= 4 else "#94A3B8"
+        palette_controls.append(
+            ft.Container(
+                width=80,
+                height=80,
+                border_radius=20,
+                bgcolor=safe,
+                border=ft.border.all(3, "#FFFFFF"),
+                shadow=ft.BoxShadow(blur_radius=12, color="#18000018", offset=ft.Offset(0, 4)),
+                alignment=ft.Alignment(0, 0.8),
+                content=ft.Text(safe.upper()[:7], size=9, weight=ft.FontWeight.W_700, color="white"),
+            )
+        )
+
+    palette_card = card(
+        ft.Column(
+            spacing=14,
+            controls=[
+                ft.Row(
+                    controls=[
+                        ft.Icon(ft.Icons.PALETTE, color=PRIMARY, size=22),
+                        ft.Text("Recommended Color Palette", size=18, weight=ft.FontWeight.W_700, color=NAVY),
+                    ],
+                    spacing=10,
+                ),
+                ft.Text(
+                    "These colors complement your features and style direction. Mix freely — use one as a hero color.",
+                    size=13,
+                    color=TEXT_MUTED,
+                ),
+                ft.Row(spacing=14, wrap=True, controls=palette_controls),
+            ],
+        ),
+        padding=24,
+    )
+
+    # --- Next Actions Section ---
+    action_items: list[ft.Control] = []
+    action_icons = [ft.Icons.CHECKROOM, ft.Icons.AUTO_AWESOME, ft.Icons.DIAMOND, ft.Icons.LIGHTBULB]
+    for i, action in enumerate(next_actions):
+        icon = action_icons[i % len(action_icons)]
+        action_items.append(
+            ft.Container(
+                padding=16,
+                border_radius=16,
+                bgcolor="#FAFAFF",
+                border=ft.border.all(1, "#E8E0F5"),
+                content=ft.Row(
+                    spacing=14,
+                    controls=[
+                        ft.Container(
+                            width=40,
+                            height=40,
+                            border_radius=12,
+                            bgcolor=LAVENDER_SOFT,
+                            alignment=ft.Alignment(0, 0),
+                            content=ft.Icon(icon, color=PRIMARY, size=20),
+                        ),
+                        ft.Text(action, size=14, color=TEXT_MAIN, expand=True),
+                    ],
+                ),
+            )
+        )
+
+    actions_card = card(
+        ft.Column(
+            spacing=14,
+            controls=[
+                ft.Row(
+                    controls=[
+                        ft.Icon(ft.Icons.TRENDING_UP, color=PRIMARY, size=22),
+                        ft.Text("Next Steps to Elevate Your Style", size=18, weight=ft.FontWeight.W_700, color=NAVY),
+                    ],
+                    spacing=10,
+                ),
+                ft.Text(
+                    "Actionable suggestions tailored to your analysis results.",
+                    size=13,
+                    color=TEXT_MUTED,
+                ),
+                *action_items,
+            ],
+        ),
+        padding=24,
+    )
+
+    # --- Bottom Actions ---
+    bottom_actions = ft.Row(
+        spacing=12,
+        alignment=ft.MainAxisAlignment.CENTER,
+        controls=[
+            ft.FilledButton(
+                content=ft.Row(
+                    [
+                        ft.Icon(ft.Icons.REFRESH, color="white", size=18),
+                        ft.Text("Refresh Recommendations", color="white"),
+                    ],
+                    tight=True,
+                    spacing=8,
+                ),
+                bgcolor=PRIMARY,
+                style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=24), padding=18),
+                on_click=lambda _: refresh_all_recommendations_from_api(page),
+            ),
+            ft.OutlinedButton(
+                content=ft.Row(
+                    [
+                        ft.Icon(ft.Icons.DASHBOARD, color=PRIMARY_DARK, size=18),
+                        ft.Text("Back to Dashboard", color=PRIMARY_DARK),
+                    ],
+                    tight=True,
+                    spacing=8,
+                ),
+                style=ft.ButtonStyle(
+                    side=ft.BorderSide(1.5, "#C4B5FD"),
+                    shape=ft.RoundedRectangleBorder(radius=24),
+                    padding=18,
+                ),
+                on_click=lambda _: navigate(page, "/main"),
+            ),
+        ],
+    )
+
+    inner = ft.Column(
+        spacing=20,
+        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+        controls=[
+            score_card,
+            info_row,
+            palette_card,
+            actions_card,
+            bottom_actions,
+            ft.Container(height=20),
+        ],
+    )
+
+    body = ft.Column(
+        spacing=0,
+        expand=True,
+        controls=[
+            build_top_nav(page, for_app=True),
+            ft.Container(
+                width=1040,
+                padding=ft.Padding.symmetric(horizontal=20, vertical=24),
+                content=inner,
+            ),
+        ],
+    )
+
+    return ft.View(
+        route="/analysis",
+        bgcolor=BG_COLOR,
+        padding=0,
+        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+        scroll=ft.ScrollMode.AUTO,
+        controls=[body],
+    )
+
+
 def main(page: ft.Page) -> None:
     page.title = "Advance Self"
     page.theme_mode = ft.ThemeMode.LIGHT
@@ -1454,6 +1802,8 @@ def main(page: ft.Page) -> None:
             page.views.append(build_survey_view(page))
         elif page.route == "/main":
             page.views.append(build_main_view(page))
+        elif page.route == "/analysis":
+            page.views.append(build_analysis_view(page))
         else:
             navigate(page, "/landing")
             return

@@ -72,3 +72,23 @@ CREATE TABLE IF NOT EXISTS community_outfits (
       REFERENCES users(id)
       ON DELETE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS image_analyses (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL,
+    file_name VARCHAR(255) NOT NULL,
+    stored_path VARCHAR(500) NOT NULL,
+    dominant_vibe VARCHAR(80) NOT NULL DEFAULT 'Minimalist',
+    face_shape_hint VARCHAR(120),
+    fit_feedback TEXT NOT NULL,
+    style_score INTEGER NOT NULL DEFAULT 75,
+    color_suggestions TEXT NOT NULL DEFAULT '[]',
+    next_actions TEXT NOT NULL DEFAULT '[]',
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_image_analyses_user
+      FOREIGN KEY(user_id)
+      REFERENCES users(id)
+      ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_image_analyses_user_id ON image_analyses(user_id);

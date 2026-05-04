@@ -66,3 +66,19 @@ class CommunityOutfit(Base):
     likes: Mapped[int] = mapped_column(Integer, default=0)
     anonymous: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class ImageAnalysis(Base):
+    __tablename__ = "image_analyses"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    file_name: Mapped[str] = mapped_column(String(255))
+    stored_path: Mapped[str] = mapped_column(String(500))
+    dominant_vibe: Mapped[str] = mapped_column(String(80), default="Minimalist")
+    face_shape_hint: Mapped[str] = mapped_column(String(120), nullable=True)
+    fit_feedback: Mapped[str] = mapped_column(Text)
+    style_score: Mapped[int] = mapped_column(Integer, default=75)
+    color_suggestions: Mapped[str] = mapped_column(Text, default="[]")
+    next_actions: Mapped[str] = mapped_column(Text, default="[]")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

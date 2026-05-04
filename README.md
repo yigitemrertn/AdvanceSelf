@@ -1,6 +1,6 @@
 # Advance Self — AI Style Consultant
 
-A full-stack personalized **Imagemaker / Style Consultant** web application powered by an LLM. The system analyzes your physical profile and style preferences to generate clothing recommendations, accessory pairings, hairstyle guides, and visual moodboards.
+A full-stack personalized **Imagemaker / Style Consultant** application powered by AI. The system analyzes your physical profile and style preferences to generate clothing recommendations, accessory pairings, hairstyle guides, visual moodboards, and image-based style analysis.
 
 > **Core Philosophy**: Enhance your natural physical traits through optimized clothing, accessories, and grooming — not physical modifications.
 
@@ -10,17 +10,17 @@ A full-stack personalized **Imagemaker / Style Consultant** web application powe
 
 ```
 AdvanceSelf/
-├── backend/          # FastAPI · Python · PostgreSQL · Groq LLM
-└── frontend/         # Next.js 14 (App Router) · Tailwind CSS
+├── backend/          # FastAPI · Python · SQLite (async) · SQLAlchemy 2.0
+└── frontend/         # Flet (Python) — desktop & web UI
 ```
 
 ```
-Browser ──► Next.js (Port 3000) ──► FastAPI (Port 8000) ──► PostgreSQL
-                                           │
-                                           └──► Groq API (Llama 3.3-70B)
+Flet UI (Desktop / Web) ──► FastAPI (Port 8000) ──► SQLite / PostgreSQL
+                                    │
+                                    └──► (Optional) LLM API for recommendations
 ```
 
-All data exchange between frontend, backend, and LLM is **strict JSON**.
+All data exchange between frontend and backend is **strict JSON** over REST.
 
 ---
 
@@ -28,11 +28,11 @@ All data exchange between frontend, backend, and LLM is **strict JSON**.
 
 | Layer | Technology |
 |---|---|
-| Frontend | Next.js 14 (App Router), Tailwind CSS, Zustand, Axios |
+| Frontend | Python 3.11+, Flet 0.84+ (desktop & web) |
 | Backend | Python 3.11+, FastAPI, async SQLAlchemy 2.0 |
-| Database | PostgreSQL 15 |
-| LLM | Groq API (Llama 3.3-70B) — free tier |
-| Auth | JWT (python-jose), bcrypt (passlib) |
+| Database | SQLite (dev) / PostgreSQL (prod) |
+| Auth | JWT (python-jose), pbkdf2_sha256 (passlib) |
+| Image Analysis | Server-side analysis with style scoring |
 
 ---
 
@@ -41,11 +41,11 @@ All data exchange between frontend, backend, and LLM is **strict JSON**.
 | Table | Purpose |
 |---|---|
 | `users` | Auth credentials (email, username, hashed password) |
-| `physical_profiles` | Height, weight, body type, face shape |
-| `style_preferences` | Target style, dominant colors, accessory & hair prefs |
-| `ai_recommendations` | Cached LLM outputs keyed by user + category |
+| `profiles` | Height, weight, body type, face shape, style preference |
+| `recommendations` | Cached recommendation outputs keyed by user + category |
 | `chat_messages` | Full chat history per user |
 | `community_outfits` | Anonymous outfit posts with likes |
+| `image_analyses` | Image analysis results with style scores |
 
 ---
 
@@ -53,15 +53,11 @@ All data exchange between frontend, backend, and LLM is **strict JSON**.
 
 | Route | Page |
 |---|---|
-
-| `/register` | Account creation |
-| `/dashboard` | Home with style identity banner |
-| `/dashboard/chat` | AI style advisor chat |
-| `/dashboard/clothing` | Color palettes, cuts & daily outfit combo |
-| `/dashboard/accessories` | Jewelry & accessory recommendations |
-| `/dashboard/hairstyle` | Face-shape matched hairstyle guide |
-| `/dashboard/moodboard` | Pinterest-style aesthetic image grid |
-| `/dashboard/community` | Anonymous outfit feed |
+| `/landing` | Public landing page with hero and process overview |
+| `/login` | Login / Register split-screen |
+| `/survey` | Physical profile + style preference survey |
+| `/main` | Dashboard — recommendations, photo upload, style plan |
+| `/analysis` | Dedicated image analysis results with score, palette, and actions |
 
 ---
 
@@ -70,22 +66,11 @@ All data exchange between frontend, backend, and LLM is **strict JSON**.
 ### Prerequisites
 
 - Python 3.11+
-- Node.js 18+
-- PostgreSQL 15 running locally
-- (Optional) Groq API key — [https://console.groq.com](https://console.groq.com)
+- (Optional) PostgreSQL 15 for production
 
 ---
 
-### 1. Database
-
-```sql
--- In psql or pgAdmin
-CREATE DATABASE advanceself;
-```
-
----
-
-### 2. Backend
+### 1. Backend
 
 ```bash
 cd backend
@@ -100,24 +85,21 @@ pip install -r requirements.txt
 
 # Copy and configure environment variables
 copy .env.example .env
-# Edit .env — set DATABASE_URL, JWT_SECRET_KEY, and optionally GROQ_API_KEY
+# Edit .env — set JWT_SECRET_KEY
 ```
 
 #### Environment Variables (`.env`)
 
 | Variable | Description | Required |
 |---|---|---|
-| `DATABASE_URL` | `postgresql+asyncpg://user:pass@localhost:5432/advanceself` | ✅ |
+| `DATABASE_URL` | `sqlite+aiosqlite:///./advanceself.db` (default) | ✅ |
 | `JWT_SECRET_KEY` | Long random string for signing JWTs | ✅ |
 | `JWT_ALGORITHM` | Default: `HS256` | ✅ |
 | `JWT_EXPIRE_MINUTES` | Default: `43200` (30 days) | ✅ |
-| `GROQ_API_KEY` | Get free at console.groq.com | ❌ (mock fallback used if absent) |
-| `GROQ_MODEL` | Default: `llama-3.3-70b-versatile` | ❌ |
 | `DEBUG` | Default: `true` | ❌ |
-| `CORS_ORIGINS` | Default: `["http://localhost:3000"]` | ❌ |
 
 ```bash
-# Seed the database (creates tables + seed user + 12 community posts)
+# Seed the database (creates tables + seed user + community posts)
 python seed.py
 
 # Start the API server
@@ -132,34 +114,22 @@ API docs: [http://localhost:8000/docs](http://localhost:8000/docs)
 
 ---
 
-### 3. Frontend
+### 2. Frontend
 
 ```bash
 cd frontend
 
-# Install dependencies (already done if scaffolded)
-npm install
+# Install dependencies
+pip install -r requirements.txt
 
-# Configure environment
-# Create .env.local with:
-echo "NEXT_PUBLIC_API_URL=http://localhost:8000" > .env.local
+# Run as desktop app
+python main.py
 
-# Start development server
-npm run dev
+# Or run as web app
+python main.py --web
 ```
 
-Frontend: [http://localhost:3000](http://localhost:3000)
-
----
-
-## LLM Integration
-
-The `LLMService` class (`backend/app/llm_service.py`) handles all AI interactions:
-
-- **Context injection**: Every prompt receives the user's full physical profile and style preferences.
-- **JSON enforcement**: Recommendation endpoints instruct the LLM to return only a valid JSON object matching a predefined schema.
-- **Mock fallback**: When `GROQ_API_KEY` is absent or empty, the service returns curated mock data matching the seed user's gothic profile. The app is fully functional without an API key.
-- **Swappable**: The Groq client is injected at init time. Swapping to Gemini requires only implementing the same `generate_recommendations` / `chat` interface.
+Frontend (web mode): [http://localhost:8550](http://localhost:8550)
 
 ---
 
@@ -167,7 +137,7 @@ The `LLMService` class (`backend/app/llm_service.py`) handles all AI interaction
 
 ```
 POST   /api/v1/auth/register
-
+POST   /api/v1/auth/login
 GET    /api/v1/auth/me
 
 GET    /api/v1/profile/
@@ -192,6 +162,10 @@ POST   /api/v1/hairstyle/refresh
 GET    /api/v1/moodboard/recommendations
 POST   /api/v1/moodboard/refresh
 
+POST   /api/v1/image/analyze
+GET    /api/v1/image/analysis
+GET    /api/v1/image/analysis/history
+
 GET    /api/v1/community/feed?page=1&limit=10
 POST   /api/v1/community/post
 POST   /api/v1/community/{id}/like
@@ -207,10 +181,10 @@ GET    /api/v1/health
 - [ ] Set `DEBUG=false`
 - [ ] Use Alembic migrations instead of `create_all` (`alembic init migrations && alembic revision --autogenerate`)
 - [ ] Move to httpOnly cookies for JWT (more secure than localStorage)
-- [ ] Add rate limiting (e.g., `slowapi`) on auth and LLM endpoints
+- [ ] Add rate limiting (e.g., `slowapi`) on auth and image endpoints
 - [ ] Configure proper CORS origins
-- [ ] Add Redis caching layer for LLM recommendations
 - [ ] Deploy behind a reverse proxy (nginx/Caddy)
+- [ ] Switch to PostgreSQL for production
 
 ---
 
@@ -225,7 +199,7 @@ backend/
 │   ├── models.py        # SQLAlchemy ORM models (6 tables)
 │   ├── schemas.py       # Pydantic request/response schemas
 │   ├── dependencies.py  # get_db, get_current_user, create_access_token
-│   ├── llm_service.py   # Groq integration with mock fallback
+│   ├── services.py      # Mock recommendation generator
 │   └── routes/
 │       ├── auth.py
 │       ├── profile.py
@@ -235,7 +209,19 @@ backend/
 │       ├── hairstyle.py
 │       ├── moodboard.py
 │       ├── community.py
+│       ├── image_analysis.py
 │       └── _recommendation_base.py   # Shared get/refresh factory
 ├── seed.py              # DB seeder
+├── styles.json          # Style options data
 └── requirements.txt
+```
+
+## Folder Structure (Frontend)
+
+```
+frontend/
+├── main.py              # Flet application — all views and routing
+├── requirements.txt     # flet, requests
+├── run_web.bat           # Windows batch launcher
+└── run_web.ps1           # PowerShell launcher
 ```
