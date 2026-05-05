@@ -1,13 +1,28 @@
 import json
 import os
-from pathlib import Path
 
-import flet as ft
-import requests
+CONFIG_FILE = "user_config.json"
 
-API_BASE_URL = os.getenv("ADVANCESELF_API_URL", "http://127.0.0.1:8000/api/v1")
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-STYLES_FILE = PROJECT_ROOT / "backend" / "styles.json"
+def load_config():
+    if os.path.exists(CONFIG_FILE):
+        try:
+            with open(CONFIG_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            return {}
+    return {}
+
+def save_config(config_data):
+    with open(CONFIG_FILE, "w", encoding="utf-8") as f:
+        json.dump(config_data, f, indent=4)
+
+def is_config_complete():
+    config = load_config()
+    required_keys = ["gender", "height", "weight", "face_shape", "preferred_style"]
+    for key in required_keys:
+        if not config.get(key):
+            return False
+    return True
 
 # Stitch-inspired palette (digital couture / deep purple)
 BG_COLOR = "#F7F7FF"
@@ -92,280 +107,234 @@ def field(label: str, password: bool = False, width: int = 340, numeric: bool = 
         label_style=ft.TextStyle(color=TEXT_MUTED),
     )
 
-
-def card(content: ft.Control, padding: int = 24) -> ft.Container:
-    return ft.Container(
-        bgcolor=CARD_COLOR,
-        border_radius=18,
-        padding=padding,
-        shadow=ft.BoxShadow(blur_radius=22, color="#14000000", offset=ft.Offset(0, 8)),
-        content=content,
-    )
-
-
-def stitch_input(label: str, icon, *, password: bool = False) -> ft.TextField:
-    return ft.TextField(
-        label=label,
-        width=400,
-        border_radius=14,
-        border_color="#E2E8F0",
-        focused_border_color=PRIMARY,
-        cursor_color=PRIMARY,
-        prefix_icon=icon,
-        password=password,
-        can_reveal_password=password,
-        text_style=ft.TextStyle(color=TEXT_MAIN),
-        label_style=ft.TextStyle(color=TEXT_MUTED, size=12, weight=ft.FontWeight.W_500),
-        bgcolor=SURFACE,
-    )
-
-
-def api_headers(auth_required: bool = True) -> dict:
-    headers = {"Content-Type": "application/json"}
-    token = APP_STATE.get("token")
-    if auth_required and token:
-        headers["Authorization"] = f"Bearer {token}"
-    return headers
-
-
-def login_user(email: str, password: str) -> str:
-    payload = {"email": email, "password": password}
-    response = requests.post(f"{API_BASE_URL}/auth/login", json=payload, timeout=12)
-    response.raise_for_status()
-    return response.json()["access_token"]
-
-
-def register_or_login(email: str, username: str, password: str) -> str:
-    payload = {"email": email, "username": username, "password": password}
-    resp = requests.post(f"{API_BASE_URL}/auth/register", json=payload, timeout=12)
-    if resp.status_code in (200, 201):
-        return resp.json()["access_token"]
-    # If already exists (or similar), fall back to login with the same credentials.
-    if resp.status_code == 400:
-        login_payload = {"email": email, "password": password}
-        login = requests.post(f"{API_BASE_URL}/auth/login", json=login_payload, timeout=12)
-        login.raise_for_status()
-        return login.json()["access_token"]
-    # Raise a useful error for other cases (422 etc.)
-    resp.raise_for_status()
-    raise RuntimeError("Unexpected auth response")
-
-
-def error_detail(exc: requests.RequestException) -> str:
-    resp = getattr(exc, "response", None)
-    if resp is not None:
-        try:
-            data = resp.json()
-            if isinstance(data, dict) and "detail" in data:
-                return str(data["detail"])
-        except Exception:
-            pass
-        return f"{resp.status_code} {resp.reason}"
-    return str(exc)
-
-
-def fetch_bootstrap_data() -> None:
-    me = requests.get(f"{API_BASE_URL}/auth/me", headers=api_headers(), timeout=12)
-    me.raise_for_status()
-    APP_STATE["username"] = me.json().get("username", "friend")
-
-    profile = requests.get(f"{API_BASE_URL}/profile/", headers=api_headers(), timeout=12)
-    profile.raise_for_status()
-    APP_STATE["profile"] = profile.json()
-
-    APP_STATE["recommendations"] = {}
-    for category in ["hairstyle", "clothing", "accessories", "moodboard"]:
-        resp = requests.get(f"{API_BASE_URL}/{category}/recommendations", headers=api_headers(), timeout=12)
-        resp.raise_for_status()
-        APP_STATE["recommendations"][category] = resp.json()
-
-    APP_STATE["community_feed"] = []
-
-
-def refresh_all_recommendations_from_api(page: ft.Page) -> None:
-    if not APP_STATE.get("token"):
-        navigate(page, "/login")
-        return
+def build_survey_view(page: ft.Page) -> ft.View:
+    face_shapes = ["Oval", "Round", "Square", "Heart", "Diamond", "Oblong", "Triangle"]
+    face_options = face_shapes
+    
     try:
-        for cat in ("hairstyle", "clothing", "accessories", "moodboard"):
-            requests.post(f"{API_BASE_URL}/{cat}/refresh", headers=api_headers(), timeout=25).raise_for_status()
-        fetch_bootstrap_data()
-        toast(page, "Recommendations refreshed from the server.")
-        navigate(page, "/main")
-    except requests.RequestException as exc:
-        toast(page, f"Refresh failed: {error_detail(exc)}")
+        with open("backend/styles.json", "r", encoding="utf-8") as f:
+            styles_data = json.load(f)
+            style_options = [d["name"] for d in styles_data if "name" in d]
+    except Exception:
+        style_options = ["Error loading styles"]
 
+    def make_field(label, numeric=False):
+        return ft.TextField(
+            label=label,
+            border_radius=12,
+            border_color="#d8cdad",
+            cursor_color="#f85e5e",
+            bgcolor="#ffffff",
+            color="#222222",
+            width=320,
+            keyboard_type=ft.KeyboardType.NUMBER if numeric else ft.KeyboardType.TEXT,
+            text_style=ft.TextStyle(font_family="Inria Serif", size=16),
+            label_style=ft.TextStyle(font_family="Inria Serif", color="#888888"),
+            content_padding=ft.Padding(left=20, top=15, right=20, bottom=15),
+        )
+        
+    def make_searchable_dropdown(label, options):
+        text_field = ft.TextField(
+            label=label,
+            border_radius=12,
+            border_color="#d8cdad",
+            cursor_color="#f85e5e",
+            bgcolor="#ffffff",
+            color="#222222",
+            width=320,
+            text_style=ft.TextStyle(font_family="Inria Serif", size=16),
+            label_style=ft.TextStyle(font_family="Inria Serif", color="#888888"),
+            content_padding=ft.Padding(left=20, top=15, right=20, bottom=15),
+        )
+        
+        list_view = ft.ListView(spacing=0, height=150)
+        
+        container = ft.Container(
+            content=list_view,
+            width=320,
+            bgcolor="#ffffff",
+            border=ft.Border.all(1, "#f0f0f0"),
+            border_radius=12,
+            visible=False,
+            padding=5,
+            shadow=ft.BoxShadow(
+                blur_radius=15,
+                color=ft.Colors.with_opacity(0.1, "#000000"),
+                offset=ft.Offset(0, 5)
+            ),
+        )
+        
+        def select_option(opt):
+            text_field.value = opt
+            container.visible = False
+            text_field.update()
+            container.update()
 
-def open_detail_dialog(page: ft.Page, title: str, body: str, extra: str = "") -> None:
-    def close(_: ft.ControlEvent) -> None:
-        if page.dialog:
-            page.dialog.open = False
-            page.update()
+        def update_options(search_term):
+            filtered = [opt for opt in options if search_term.lower() in opt.lower()]
+            list_view.controls.clear()
+            for opt in filtered:
+                def make_click(o):
+                    return lambda _: select_option(o)
+                list_view.controls.append(
+                    ft.Container(
+                        content=ft.Text(opt, color="#222222", font_family="Inria Serif", size=15),
+                        padding=ft.Padding(left=15, top=12, right=15, bottom=12),
+                        on_click=make_click(opt),
+                        ink=True,
+                        border_radius=8
+                    )
+                )
 
-    page.dialog = ft.AlertDialog(
-        modal=True,
-        title=ft.Text(title, weight=ft.FontWeight.W_700),
-        content=ft.Column(
-            [ft.Text(body, size=14), ft.Text(extra, size=12, color=TEXT_MUTED)] if extra else [ft.Text(body, size=14)],
-            tight=True,
-            scroll=ft.ScrollMode.AUTO,
-        ),
-        actions=[ft.TextButton("Close", on_click=close)],
-        actions_alignment=ft.MainAxisAlignment.END,
+        def on_change(e):
+            val = e.control.value or ""
+            update_options(val)
+            container.visible = True if len(list_view.controls) > 0 else False
+            container.update()
+            
+        def on_focus(e):
+            val = e.control.value or ""
+            update_options(val)
+            container.visible = True if len(list_view.controls) > 0 else False
+            container.update()
+            
+        text_field.on_change = on_change
+        text_field.on_focus = on_focus
+        
+        return ft.Column([text_field, container], spacing=0, horizontal_alignment=ft.CrossAxisAlignment.CENTER), text_field
+
+    gender_group = ft.RadioGroup(
+        content=ft.Row(
+            alignment=ft.MainAxisAlignment.CENTER,
+            spacing=40,
+            controls=[
+                ft.Radio(value="male", label="Male", fill_color="#f85e5e", label_style=ft.TextStyle(font_family="Inria Serif", size=16, color="#444444")),
+                ft.Radio(value="female", label="Female", fill_color="#f85e5e", label_style=ft.TextStyle(font_family="Inria Serif", size=16, color="#444444"))
+            ]
+        )
+    )
+    
+    height_field = make_field("Height (cm)", numeric=True)
+    weight_field = make_field("Weight (kg)", numeric=True)
+    
+    face_col, face_field = make_searchable_dropdown("Face Shape", face_options)
+    style_col, style_field = make_searchable_dropdown("Preferred Style", style_options)
+
+    def on_complete(e):
+        if not gender_group.value or not height_field.value or not weight_field.value or not face_field.value or not style_field.value:
+            snack = ft.SnackBar(
+                content=ft.Text("Please fill all fields before completing!", color="#ffffff", font_family="Inria Serif"),
+                bgcolor="#f85e5e",
+                behavior=ft.SnackBarBehavior.FLOATING,
+                margin=20
+            )
+            try:
+                page.open(snack)
+            except AttributeError:
+                page.snack_bar = snack
+                page.snack_bar.open = True
+                page.update()
+            return
+
+        config_data = load_config()
+        config_data.update({
+            "gender": gender_group.value,
+            "height": height_field.value,
+            "weight": weight_field.value,
+            "face_shape": face_field.value,
+            "preferred_style": style_field.value
+        })
+        save_config(config_data)
+        page.go("/main")
+
+    complete_btn = ft.Container(
+        content=ft.Text("Complete Profile", size=18, font_family="Inria Serif", color="#ffffff", weight=ft.FontWeight.W_600),
+        alignment=ft.Alignment(0, 0),
+        width=320,
+        height=55,
+        bgcolor="#f85e5e",
+        border_radius=12,
+        ink=True,
+        on_click=on_complete,
+        shadow=ft.BoxShadow(
+            blur_radius=15,
+            color=ft.Colors.with_opacity(0.4, "#f85e5e"),
+            offset=ft.Offset(0, 5)
+        )
+    )
+
+    form_content = ft.Column(
+        alignment=ft.MainAxisAlignment.CENTER,
+        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+        spacing=20,
+        controls=[
+            ft.Container(
+                content=ft.Column(
+                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                    spacing=5,
+                    controls=[
+                        serif("Advance Self", size=42),
+                        ft.Text("Craft your perfect aesthetic.", size=17, color="#777777", font_family="Inria Serif", italic=True),
+                    ]
+                ),
+                padding=ft.Padding(left=0, top=0, right=0, bottom=15)
+            ),
+            gender_group,
+            height_field,
+            weight_field,
+            face_col,
+            style_col,
+            ft.Container(height=10),
+            complete_btn
+        ]
     )
     page.dialog.open = True
     page.update()
 
-
-def save_survey_and_fetch_data(profile_payload: dict, preferred_style: str) -> None:
-    requests.put(f"{API_BASE_URL}/profile/physical", json=profile_payload, headers=api_headers(), timeout=12).raise_for_status()
-    requests.put(
-        f"{API_BASE_URL}/profile/preferences",
-        json={"preferred_style": preferred_style},
-        headers=api_headers(),
-        timeout=12,
-    ).raise_for_status()
-    fetch_bootstrap_data()
-
-
-def analyze_uploaded_image(image_bytes: bytes, filename: str) -> dict:
-    response = requests.post(
-        f"{API_BASE_URL}/image/analyze",
-        headers={"Authorization": f"Bearer {APP_STATE.get('token')}"},
-        files={"file": (filename, image_bytes)},
-        timeout=30,
-    )
-    response.raise_for_status()
-    payload = response.json()
-    APP_STATE["image_analysis"] = payload
-    return payload
-
-
-def fetch_analysis_from_api() -> dict | None:
-    """Fetch the latest image analysis from the backend."""
-    try:
-        resp = requests.get(f"{API_BASE_URL}/image/analysis", headers=api_headers(), timeout=12)
-        if resp.status_code == 404:
-            return None
-        resp.raise_for_status()
-        data = resp.json().get("analysis", {})
-        APP_STATE["image_analysis"] = {"analysis": data}
-        return data
-    except requests.RequestException:
-        return None
-
-
-def has_completed_profile() -> bool:
-    profile = APP_STATE.get("profile", {})
-    return bool(profile.get("preferred_style") and profile.get("face_shape"))
-
-
-def logout(page: ft.Page) -> None:
-    # Avoid navigating while a native picker dialog is active (can close session mid-await).
-    if APP_STATE.get("picking_photo"):
-        return
-    APP_STATE["token"] = None
-    APP_STATE["username"] = "friend"
-    APP_STATE["profile"] = {}
-    APP_STATE["recommendations"] = {}
-    APP_STATE["community_feed"] = []
-    APP_STATE["image_analysis"] = None
-    navigate(page, "/landing")
-
-
-def navigate(page: ft.Page, route: str) -> None:
-    # NOTE: In Flet 0.84, `Page.push_route` is async and must be awaited.
-    # For sync click handlers + simple routing, `go()` remains the most reliable option.
-    page.go(route)
-
-
-def toast(page: ft.Page, message: str) -> None:
-    page.snack_bar = ft.SnackBar(ft.Text(message), bgcolor=NAVY)
-    page.snack_bar.open = True
-    page.update()
-
-
-def brand_logo_text(size: int = 22) -> ft.Text:
-    return ft.Text(
-        "Advance Self",
-        size=size,
-        weight=ft.FontWeight.W_700,
-        italic=True,
-        color=PURPLE_DEEP,
-    )
-
-
-def nav_link(label: str, on_click) -> ft.TextButton:
-    return ft.TextButton(
-        label,
-        style=ft.ButtonStyle(color=TEXT_MUTED),
-        on_click=on_click,
-    )
-
-
-def build_top_nav(
-    page: ft.Page,
-    *,
-    for_app: bool,
-    profile: dict | None = None,
-    on_refresh_recommendations=None,
-) -> ft.Container:
-    profile = profile or {}
-
-    def go_landing(_: ft.ControlEvent) -> None:
-        navigate(page, "/landing")
-
-    def go_login(_: ft.ControlEvent) -> None:
-        navigate(page, "/login")
-
-    def go_main(_: ft.ControlEvent) -> None:
-        if APP_STATE.get("token"):
-            navigate(page, "/main" if has_completed_profile() else "/survey")
-        else:
-            navigate(page, "/login")
-
-    def on_get_reco_click(_: ft.ControlEvent) -> None:
-        if on_refresh_recommendations is not None:
-            on_refresh_recommendations()
-        else:
-            go_main(_)
-
-    def stub(msg: str):
-        def _(_e: ft.ControlEvent) -> None:
-            toast(page, msg)
-
-        return _
-
-    right_controls: list[ft.Control] = [
-        ft.IconButton(ft.Icons.NOTIFICATIONS_OUTLINED, icon_color=TEXT_MUTED, on_click=stub("No new notifications yet.")),
-        ft.IconButton(ft.Icons.AUTO_AWESOME, icon_color=TEXT_MUTED, on_click=stub("AI style tools — stay tuned.")),
-        ft.FilledButton(
-            "Get Recommendations",
-            bgcolor=PRIMARY,
-            color="white",
-            style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=24)),
-            on_click=on_get_reco_click,
+    survey_card = ft.Container(
+        content=form_content,
+        bgcolor="#ffffff",
+        border_radius=24,
+        padding=ft.Padding(left=50, top=40, right=50, bottom=40),
+        width=480,
+        shadow=ft.BoxShadow(
+            spread_radius=0,
+            blur_radius=30,
+            color=ft.Colors.with_opacity(0.08, "#000000"),
+            offset=ft.Offset(0, 10)
         ),
-    ]
-    if for_app and APP_STATE.get("token"):
-        initial = (APP_STATE.get("username") or "?")[0].upper()
-        right_controls.append(
+        alignment=ft.Alignment(0, 0)
+    )
+
+    return ft.View(
+        route="/survey",
+        padding=0,
+        scroll=ft.ScrollMode.AUTO,
+        controls=[
             ft.Container(
                 width=40,
                 height=40,
                 border_radius=20,
                 bgcolor=LAVENDER,
                 alignment=ft.Alignment(0, 0),
-                content=ft.Text(initial, size=16, weight=ft.FontWeight.W_600, color=PRIMARY_DARK),
+                padding=ft.Padding(0, 40, 0, 40),
+                gradient=ft.LinearGradient(
+                    begin=ft.Alignment(-1, -1),
+                    end=ft.Alignment(1, 1),
+                    colors=["#faf9f6", "#d8cdad"]
+                ),
+                content=survey_card
             )
         )
     else:
         right_controls.append(ft.TextButton("Log in", style=ft.ButtonStyle(color=ACCENT), on_click=go_login))
 
-    return ft.Container(
-        padding=ft.Padding.symmetric(horizontal=24, vertical=16),
-        bgcolor=SURFACE,
-        border=ft.border.only(bottom=ft.BorderSide(1, "#E2E8F0")),
+def build_main_view(page: ft.Page) -> ft.View:
+    # HEADER
+    header = ft.Container(
+        left=0, right=0, top=0,
+        bgcolor=HEADER_BG,
+        padding=ft.Padding(left=40, top=20, right=40, bottom=20),
         content=ft.Row(
             alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
             vertical_alignment=ft.CrossAxisAlignment.CENTER,
@@ -434,14 +403,12 @@ def build_landing_view(page: ft.Page) -> ft.View:
                 ft.Row(
                     spacing=12,
                     controls=[
-                        ft.FilledButton(
-                            content=ft.Row(
-                                [ft.Text("Start Your Transformation", color="white"), ft.Icon(ft.Icons.ARROW_FORWARD, color="white", size=18)],
-                                tight=True,
-                            ),
-                            bgcolor=PRIMARY,
-                            style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=28), padding=20),
-                            on_click=start_transform,
+                        ft.Container(
+                            content=ft.Text("Survey", color="#ffffff", size=18, font_family="Inria Serif"),
+                            bgcolor="#c4b281",
+                            padding=ft.Padding(left=25, top=8, right=25, bottom=8),
+                            border_radius=20,
+                            on_click=lambda _: page.go("/survey")
                         ),
                         ft.OutlinedButton(
                             "Explore Moodboards",
@@ -459,47 +426,21 @@ def build_landing_view(page: ft.Page) -> ft.View:
         ),
     )
 
-    hero_visual = ft.Container(
-        expand=1,
-        height=420,
-        border_radius=28,
-        clip_behavior=ft.ClipBehavior.ANTI_ALIAS,
-        content=ft.Stack(
-            [
-                ft.Image(src=IMG_LANDING_HERO, fit=ft.BoxFit.COVER, expand=True, height=420),
-                ft.Container(
-                    expand=True,
-                    gradient=ft.LinearGradient(
-                        begin=ft.Alignment(-0.8, -1),
-                        end=ft.Alignment(0.8, 1),
-                        colors=["#1e1b4b99", "#4c1d9599", "#7c3aed88"],
-                    ),
-                ),
-                ft.Container(
-                    padding=20,
-                    alignment=ft.Alignment(0, 1),
-                    content=ft.Container(
-                        padding=16,
-                        border_radius=16,
-                        bgcolor="#35FFFFFF",
-                        content=ft.Row(
-                            [
-                                ft.Icon(ft.Icons.CHECKROOM, color="white", size=22),
-                                ft.Column(
-                                    spacing=2,
-                                    controls=[
-                                        ft.Text("Match Score", size=11, color="#E2E8F0"),
-                                        ft.Text("98% Compatibility", size=18, weight=ft.FontWeight.W_700, color="white"),
-                                    ],
-                                    tight=True,
-                                ),
-                            ],
-                            tight=True,
-                        ),
-                    ),
-                ),
-            ],
-        ),
+    # FOOTER
+    footer = ft.Container(
+        left=0, right=0, bottom=0,
+        bgcolor=HEADER_BG,
+        padding=ft.Padding(left=40, top=20, right=40, bottom=20),
+        alignment=ft.Alignment(1, 0),
+        content=ft.Row(
+            alignment=ft.MainAxisAlignment.END,
+            spacing=10,
+            vertical_alignment=ft.CrossAxisAlignment.END,
+            controls=[
+                ft.Text("Advance Self", size=29, color="#ffffff", font_family="Inria Serif"),
+                ft.Text("Improve Your Image", size=18, color="#ffffff", opacity=0.7, font_family="Inria Serif", italic=True),
+            ]
+        )
     )
 
     def process_step(icon, title: str, desc: str, photo: str) -> ft.Container:
@@ -1810,8 +1751,10 @@ def main(page: ft.Page) -> None:
         page.update()
 
     page.on_route_change = route_change
-    navigate(page, "/landing")
-
+    if is_config_complete():
+        page.go("/main")
+    else:
+        page.go("/survey")
 
 if __name__ == "__main__":
     import sys
