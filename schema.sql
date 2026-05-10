@@ -11,7 +11,7 @@ CREATE TABLE user_profiles (
     user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
     birth_date DATE,
     gender VARCHAR(50),
-    height INTEGER, -- cm
+    height DECIMAL(5,2), -- cm
     body_shape VARCHAR(50), -- e.g., Üçgen, Kum saati
     face_shape VARCHAR(50), -- e.g., Oval, Kare
     preferred_styles JSONB -- e.g., ["Spor", "Klasik"]
