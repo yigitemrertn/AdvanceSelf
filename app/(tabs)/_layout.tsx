@@ -2,7 +2,7 @@ import { Tabs } from 'expo-router';
 import React from 'react';
 import { Platform, View, StyleSheet } from 'react-native';
 import { AppColors, AppRadii } from '../../src/theme/colors';
-import { ScanFace, TrendingUp, Sparkles, UserCircle } from 'lucide-react-native';
+import { Home, ScanFace, Sparkles, UserCircle } from 'lucide-react-native';
 
 export default function TabLayout() {
   return (
@@ -28,23 +28,23 @@ export default function TabLayout() {
         },
       }}>
       <Tabs.Screen
-        name="index"
+        name="home"
         options={{
-          title: 'TARAMA',
+          title: 'ANA SAYFA',
           tabBarIcon: ({ color, focused }) => (
             <View style={[styles.iconContainer, focused && styles.iconContainerActive]}>
-              <ScanFace color={color} size={22} />
+              <Home color={color} size={22} />
             </View>
           ),
         }}
       />
       <Tabs.Screen
-        name="progress"
+        name="scan"
         options={{
-          title: 'İLERLEME',
+          title: 'TARAMA',
           tabBarIcon: ({ color, focused }) => (
             <View style={[styles.iconContainer, focused && styles.iconContainerActive]}>
-              <TrendingUp color={color} size={22} />
+              <ScanFace color={color} size={22} />
             </View>
           ),
         }}

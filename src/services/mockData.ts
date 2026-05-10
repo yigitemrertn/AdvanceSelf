@@ -1,6 +1,8 @@
 // LUMERA AI – Mock Data Service
 
 export type MetricTrend = 'up' | 'down' | 'stable';
+export type RecommendationCategory = 'all' | 'hydration' | 'pore' | 'makeup' | 'routine';
+export type RecommendationPriority = 'high' | 'medium' | 'low';
 
 export interface SkinMetric {
   label: string;
@@ -15,8 +17,18 @@ export interface SkinMetric {
 export interface QuickAction {
   id: string;
   label: string;
-  iconName: any; // using lucide icon names
+  iconName: any;
   route: string;
+}
+
+export interface Recommendation {
+  id: string;
+  title: string;
+  description: string;
+  category: Exclude<RecommendationCategory, 'all'>;
+  priority: RecommendationPriority;
+  iconName: string;
+  completedToday: boolean;
 }
 
 export const MockData = {
@@ -104,4 +116,79 @@ export const MockData = {
     { id: 'routine', label: 'Rutin', iconName: 'CheckCircle2', route: '/routine' },
     { id: 'makeup', label: 'Makyaj', iconName: 'Brush', route: '/makeup' },
   ],
+
+  recommendations: [
+    {
+      id: 'rec_001',
+      title: 'C Vitamini Serumu Uygula',
+      description: 'Sabah rutininde C vitamini serumu kullanmak ton eşitliğini ve parlaklığı artırır. Güneş kremi öncesi uygulanmalı.',
+      category: 'hydration' as const,
+      priority: 'high' as const,
+      iconName: 'Droplets',
+      completedToday: false,
+    },
+    {
+      id: 'rec_002',
+      title: 'Gözenek Sıkılaştırıcı Maske',
+      description: 'Haftada 2 kez kil maskesi uygulamak gözenek görünümünü belirgin şekilde azaltır.',
+      category: 'pore' as const,
+      priority: 'medium' as const,
+      iconName: 'Aperture',
+      completedToday: true,
+    },
+    {
+      id: 'rec_003',
+      title: 'Hafif Fondöten Kullan',
+      description: 'Mevcut cilt tipine göre nemlendirici içerikli, gözenek tıkamayan hafif bir fondöten tercih et.',
+      category: 'makeup' as const,
+      priority: 'medium' as const,
+      iconName: 'Palette',
+      completedToday: false,
+    },
+    {
+      id: 'rec_004',
+      title: 'Gece Rutini: Retinol',
+      description: 'Haftada 2-3 kez düşük konsantrasyonlu retinol kullanımı elastikiyeti artırır ve ince çizgileri azaltır.',
+      category: 'routine' as const,
+      priority: 'high' as const,
+      iconName: 'Moon',
+      completedToday: false,
+    },
+    {
+      id: 'rec_005',
+      title: 'Hyalüronik Asit Nemlendirici',
+      description: 'Günde 2 kez hiyalüronik asit bazlı nemlendirici, cilt bariyerini onarır ve su tutma kapasitesini artırır.',
+      category: 'hydration' as const,
+      priority: 'high' as const,
+      iconName: 'Droplets',
+      completedToday: true,
+    },
+    {
+      id: 'rec_006',
+      title: 'SPF 50+ Güneş Koruyucu',
+      description: 'Her sabah, bulutlu havada bile SPF 50+ güneş koruyucu kullanmak cilt yaşlanmasını yavaşlatır.',
+      category: 'routine' as const,
+      priority: 'high' as const,
+      iconName: 'Sun',
+      completedToday: false,
+    },
+    {
+      id: 'rec_007',
+      title: 'Göz Çevresi Aydınlatıcı',
+      description: 'Koyu halka ve şişlik için kafein içerikli göz kremi sabah akşam uygulanabilir.',
+      category: 'makeup' as const,
+      priority: 'low' as const,
+      iconName: 'Eye',
+      completedToday: false,
+    },
+    {
+      id: 'rec_008',
+      title: 'BHA ile Gözenek Temizliği',
+      description: 'Salisilik asit içerikli tonik haftada 3 kez kullanarak gözeneklerin derinlemesine temizlenmesini sağla.',
+      category: 'pore' as const,
+      priority: 'high' as const,
+      iconName: 'Aperture',
+      completedToday: false,
+    },
+  ] as Recommendation[],
 };
