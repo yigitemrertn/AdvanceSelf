@@ -1,13 +1,17 @@
 erDiagram
-    Users {
+    USERS ||--o| USER_PROFILES : has
+    USERS ||--o{ ANALYSES : has
+    USERS ||--o{ RECOMMENDATIONS : receives
+    ANALYSES ||--o{ RECOMMENDATIONS : generates
+
+    USERS {
         int id PK
         string email
         string password_hash
         datetime created_at
     }
-
-    User_Profiles {
-        int user_id PK, FK
+    USER_PROFILES {
+        int user_id FK "PK"
         date birth_date
         string gender
         int height
@@ -15,8 +19,7 @@ erDiagram
         string face_shape
         jsonb preferred_styles
     }
-
-    Analyses {
+    ANALYSES {
         int id PK
         int user_id FK
         datetime analysis_date
@@ -26,8 +29,7 @@ erDiagram
         string skin_type
         jsonb facial_proportions
     }
-
-    Recommendations {
+    RECOMMENDATIONS {
         int id PK
         int user_id FK
         int analysis_id FK
@@ -35,8 +37,3 @@ erDiagram
         jsonb content
         datetime created_at
     }
-
-    Users ||--o| User_Profiles : "has"
-    Users ||--o{ Analyses : "has"
-    Users ||--o{ Recommendations : "receives"
-    Analyses ||--o{ Recommendations : "generates"
