@@ -1,35 +1,86 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
-
-import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Platform, View, StyleSheet } from 'react-native';
+import { AppColors, AppRadii } from '../../src/theme/colors';
+import { ScanFace, TrendingUp, Sparkles, UserCircle } from 'lucide-react-native';
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
-
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
         headerShown: false,
-        tabBarButton: HapticTab,
+        tabBarStyle: {
+          backgroundColor: 'rgba(19, 21, 31, 0.9)', // bgSecondary with opacity
+          borderTopColor: AppColors.borderSubtle,
+          height: 80,
+          paddingBottom: Platform.OS === 'ios' ? 20 : 10,
+          paddingTop: 10,
+          position: 'absolute',
+          elevation: 0,
+        },
+        tabBarActiveTintColor: AppColors.accentViolet,
+        tabBarInactiveTintColor: AppColors.textTertiary,
+        tabBarLabelStyle: {
+          fontSize: 10,
+          fontWeight: '600',
+          letterSpacing: 1,
+          marginTop: 4,
+        },
       }}>
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          title: 'TARAMA',
+          tabBarIcon: ({ color, focused }) => (
+            <View style={[styles.iconContainer, focused && styles.iconContainerActive]}>
+              <ScanFace color={color} size={22} />
+            </View>
+          ),
         }}
       />
       <Tabs.Screen
-        name="explore"
+        name="progress"
         options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+          title: 'İLERLEME',
+          tabBarIcon: ({ color, focused }) => (
+            <View style={[styles.iconContainer, focused && styles.iconContainerActive]}>
+              <TrendingUp color={color} size={22} />
+            </View>
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="recommendations"
+        options={{
+          title: 'ÖNERİLER',
+          tabBarIcon: ({ color, focused }) => (
+            <View style={[styles.iconContainer, focused && styles.iconContainerActive]}>
+              <Sparkles color={color} size={22} />
+            </View>
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: 'PROFİL',
+          tabBarIcon: ({ color, focused }) => (
+            <View style={[styles.iconContainer, focused && styles.iconContainerActive]}>
+              <UserCircle color={color} size={22} />
+            </View>
+          ),
         }}
       />
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  iconContainer: {
+    padding: 6,
+    borderRadius: AppRadii.sm,
+  },
+  iconContainerActive: {
+    backgroundColor: 'rgba(123, 94, 246, 0.15)',
+  },
+});
