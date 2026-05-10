@@ -1,8 +1,8 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { View, Text, StyleSheet, ScrollView, SafeAreaView, Pressable } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInUp, FadeInDown, SlideInRight, SlideInDown } from 'react-native-reanimated';
-import { Bell, Clock, TrendingUp, ChevronRight } from 'lucide-react-native';
+import { Bell, Clock, TrendingUp, ChevronRight, CheckCircle2, Circle } from 'lucide-react-native';
 import * as LucideIcons from 'lucide-react-native';
 
 import { AppColors, AppRadii, AppSpacing } from '../../src/theme/colors';
@@ -10,9 +10,16 @@ import { MockData } from '../../src/services/mockData';
 import { SkinScoreRing } from '../../src/components/SkinScoreRing';
 import { GlassCard } from '../../src/components/GlassCard';
 import { MetricChip } from '../../src/components/MetricChip';
+import { router } from 'expo-router';
 
 export default function HomeScreen() {
   const { currentUser, latestAnalysis, weeklyReport, quickActions } = MockData;
+
+  const todayTasks = [
+    { id: '1', title: 'Sabah C Vitamini', completed: true },
+    { id: '2', title: '2.5 Litre Su Tüketimi', completed: false },
+    { id: '3', title: 'Akşam Çift Aşamalı Temizlik', completed: false },
+  ];
 
   return (
     <View style={styles.container}>
@@ -25,8 +32,9 @@ export default function HomeScreen() {
           {/* Header */}
           <Animated.View entering={FadeInUp.delay(100).springify()} style={styles.header}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.greetingLabel}>MERHABA</Text>
+              <Text style={styles.greetingLabel}>GÜNAYDIN</Text>
               <Text style={styles.greetingName}>{currentUser.name}</Text>
+              <Text style={styles.greetingQuote}>"Bugün cildiniz için harika bir gün olacak."</Text>
             </View>
             <View style={styles.headerActions}>
               <Pressable style={styles.iconBtn}>
@@ -53,7 +61,7 @@ export default function HomeScreen() {
                 <Animated.View entering={FadeInUp.delay(800)} style={styles.nextScanChip}>
                   <Clock size={14} color={AppColors.accentGold} />
                   <Text style={styles.nextScanText}>
-                    Sonraki Tarama: {latestAnalysis.nextScanIn} gün
+                    Sonraki Profilleme: {latestAnalysis.nextScanIn} gün
                   </Text>
                 </Animated.View>
               </View>
@@ -70,7 +78,7 @@ export default function HomeScreen() {
 
                 return (
                   <Animated.View key={action.id} entering={SlideInRight.delay(200 + index * 100).springify()}>
-                    <Pressable>
+                    <Pressable onPress={() => router.push('/(tabs)/survey')}>
                       <LinearGradient
                         colors={isActive ? ['#7B5EF6', '#5B3FD0'] : [AppColors.bgCard, AppColors.bgCard]}
                         style={[styles.quickActionPill, !isActive && styles.quickActionInactiveBorder]}
@@ -86,6 +94,30 @@ export default function HomeScreen() {
               })}
             </ScrollView>
           </View>
+
+          {/* Daily Tasks */}
+          <Animated.View entering={SlideInDown.delay(300).springify()} style={styles.section}>
+            <View style={styles.metricsHeader}>
+              <Text style={styles.sectionTitle}>GÜNLÜK GÖREVLER</Text>
+              <Text style={styles.seeAllText}>1/3 Tamamlandı</Text>
+            </View>
+            <View style={styles.tasksContainer}>
+              {todayTasks.map((task, i) => (
+                <GlassCard key={task.id} style={styles.taskCard}>
+                  <Pressable style={styles.taskRow}>
+                    {task.completed ? (
+                      <CheckCircle2 size={20} color={AppColors.statusSuccess} />
+                    ) : (
+                      <Circle size={20} color={AppColors.textTertiary} />
+                    )}
+                    <Text style={[styles.taskTitle, task.completed && styles.taskCompleted]}>
+                      {task.title}
+                    </Text>
+                  </Pressable>
+                </GlassCard>
+              ))}
+            </View>
+          </Animated.View>
 
           {/* Weekly Report Card */}
           <Animated.View entering={SlideInDown.delay(400).springify()} style={styles.section}>
@@ -119,7 +151,6 @@ export default function HomeScreen() {
           <View style={styles.section}>
             <View style={styles.metricsHeader}>
               <Text style={styles.sectionTitle}>METRİKLER</Text>
-              <Text style={styles.seeAllText}>Tümünü Gör</Text>
             </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalScroll}>
               {latestAnalysis.metrics.map((metric, index) => (
@@ -136,7 +167,7 @@ export default function HomeScreen() {
             </ScrollView>
           </View>
 
-          <View style={{ height: 40 }} />
+          <View style={{ height: 80 }} />
         </ScrollView>
       </SafeAreaView>
     </View>
@@ -189,6 +220,12 @@ const styles = StyleSheet.create({
     color: AppColors.textPrimary,
     fontSize: 28,
     fontWeight: '300',
+  },
+  greetingQuote: {
+    color: AppColors.textTertiary,
+    fontSize: 12,
+    marginTop: 4,
+    fontStyle: 'italic',
   },
   headerActions: {
     flexDirection: 'row',
@@ -290,6 +327,27 @@ const styles = StyleSheet.create({
   quickActionTextActive: {
     color: AppColors.textPrimary,
     fontWeight: '600',
+  },
+  tasksContainer: {
+    paddingHorizontal: AppSpacing.md,
+    gap: AppSpacing.sm,
+  },
+  taskCard: {
+    padding: AppSpacing.sm,
+  },
+  taskRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: AppSpacing.md,
+  },
+  taskTitle: {
+    color: AppColors.textPrimary,
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  taskCompleted: {
+    color: AppColors.textTertiary,
+    textDecorationLine: 'line-through',
   },
   reportHeader: {
     flexDirection: 'row',

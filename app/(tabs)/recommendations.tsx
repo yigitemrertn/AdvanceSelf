@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, SafeAreaView, Pressable } from 'react-native';
-import Animated, { FadeInUp, SlideInRight } from 'react-native-reanimated';
-import { CheckCircle2, ChevronRight } from 'lucide-react-native';
+import Animated, { FadeInUp, SlideInRight, useSharedValue, useAnimatedStyle, withTiming, Easing } from 'react-native-reanimated';
+import { CheckCircle2, ChevronRight, Info, Clock } from 'lucide-react-native';
 import * as LucideIcons from 'lucide-react-native';
 
 import { AppColors, AppRadii, AppSpacing } from '../../src/theme/colors';
@@ -25,7 +25,19 @@ export default function RecommendationsScreen() {
     (rec) => activeFilter === 'all' || rec.category === activeFilter
   );
 
+  const totalCount = recommendations.length;
   const completedCount = recommendations.filter(r => r.completedToday).length;
+  const progressPercent = Math.round((completedCount / totalCount) * 100) || 0;
+
+  // Progress Bar Animation
+  const progressWidth = useSharedValue(0);
+  React.useEffect(() => {
+    progressWidth.value = withTiming(progressPercent, { duration: 1000, easing: Easing.out(Easing.cubic) });
+  }, [progressPercent]);
+
+  const progressStyle = useAnimatedStyle(() => ({
+    width: `${progressWidth.value}%`
+  }));
 
   const getPriorityColor = (priority: RecommendationPriority) => {
     switch (priority) {
@@ -44,29 +56,28 @@ export default function RecommendationsScreen() {
     <View style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
         
-        {/* Header */}
+        {/* Header & Daily Progress */}
         <Animated.View entering={FadeInUp.delay(100)} style={styles.header}>
-          <Text style={styles.headerTitle}>ÖNERİLER</Text>
-          <Text style={styles.headerSubtitle}>Sizin için yapay zeka tarafından hazırlandı</Text>
-        </Animated.View>
+          <Text style={styles.headerTitle}>GÜNLÜK ÖNERİLER</Text>
+          <Text style={styles.headerSubtitle}>Yapay Zeka Destekli Rutin Planınız</Text>
 
-        {/* Progress Summary */}
-        <Animated.View entering={FadeInUp.delay(200)} style={styles.summaryContainer}>
-          <GlassCard showGlow glowColor={AppColors.accentGold}>
-            <View style={styles.summaryRow}>
-              <View>
-                <Text style={styles.summaryTitle}>Bugün {completedCount} öneri tamamlandı</Text>
-                <Text style={styles.summarySubtitle}>Günlük rutininizi harika ilerletiyorsunuz!</Text>
-              </View>
-              <CheckCircle2 size={32} color={AppColors.accentGold} />
+          {/* Progress Bar Container */}
+          <View style={styles.progressSection}>
+            <View style={styles.progressLabelRow}>
+              <Text style={styles.progressLabel}>Günlük İlerleme</Text>
+              <Text style={styles.progressValue}>{progressPercent}%</Text>
             </View>
-          </GlassCard>
+            <View style={styles.progressBarTrack}>
+              <Animated.View style={[styles.progressBarFill, progressStyle]} />
+            </View>
+            <Text style={styles.progressSubtext}>{totalCount} öneriden {completedCount} tanesi tamamlandı</Text>
+          </View>
         </Animated.View>
 
         {/* Filters */}
         <View style={styles.filtersWrapper}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filtersScroll}>
-            {FILTERS.map((filter, index) => {
+            {FILTERS.map((filter) => {
               const isActive = activeFilter === filter.id;
               return (
                 <Pressable key={filter.id} onPress={() => setActiveFilter(filter.id)}>
@@ -91,8 +102,8 @@ export default function RecommendationsScreen() {
             const prioColor = getPriorityColor(rec.priority);
 
             return (
-              <Animated.View key={rec.id} entering={SlideInRight.delay(200 + index * 100).springify()} style={styles.cardWrapper}>
-                <GlassCard>
+              <Animated.View key={rec.id} entering={SlideInRight.delay(200 + index * 100).springify()}>
+                <GlassCard style={rec.completedToday ? styles.cardCompleted : undefined}>
                   <View style={styles.cardHeader}>
                     <View style={styles.categoryRow}>
                       <View style={[styles.iconBox, { backgroundColor: prioColor + '20' }]}>
@@ -105,18 +116,30 @@ export default function RecommendationsScreen() {
                     {rec.completedToday && (
                       <View style={styles.completedBadge}>
                         <CheckCircle2 size={12} color={AppColors.bgPrimary} />
-                        <Text style={styles.completedText}>Yapıldı</Text>
+                        <Text style={styles.completedBadgeText}>Yapıldı</Text>
                       </View>
                     )}
                   </View>
 
-                  <Text style={styles.cardTitle}>{rec.title}</Text>
-                  <Text style={styles.cardDesc}>{rec.description}</Text>
+                  <Text style={[styles.cardTitle, rec.completedToday && styles.textMuted]}>{rec.title}</Text>
+                  <Text style={[styles.cardDesc, rec.completedToday && styles.textMuted]}>{rec.description}</Text>
+
+                  {/* AI Reason & Time */}
+                  <View style={styles.cardMetaBox}>
+                    <View style={styles.metaRow}>
+                      <Info size={14} color={AppColors.textTertiary} />
+                      <Text style={styles.metaText}>Ton eşitliği puanınız düşük olduğu için önerildi.</Text>
+                    </View>
+                    <View style={[styles.metaRow, { marginTop: 6 }]}>
+                      <Clock size={14} color={AppColors.textTertiary} />
+                      <Text style={styles.metaText}>Tahmini süre: 2 dk</Text>
+                    </View>
+                  </View>
 
                   {!rec.completedToday && (
                     <Pressable style={styles.applyBtn}>
-                      <Text style={styles.applyBtnText}>Uygula</Text>
-                      <ChevronRight size={14} color={AppColors.accentVioletLight} />
+                      <Text style={styles.applyBtnText}>Uygula ve Tamamla</Text>
+                      <ChevronRight size={16} color={AppColors.accentVioletLight} />
                     </Pressable>
                   )}
                 </GlassCard>
@@ -155,24 +178,46 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginTop: 4,
   },
-  summaryContainer: {
-    paddingHorizontal: AppSpacing.lg,
-    marginBottom: AppSpacing.md,
+  progressSection: {
+    marginTop: AppSpacing.xl,
+    padding: AppSpacing.md,
+    backgroundColor: 'rgba(22, 24, 38, 0.6)',
+    borderRadius: AppRadii.lg,
+    borderWidth: 1,
+    borderColor: AppColors.borderSubtle,
   },
-  summaryRow: {
+  progressLabelRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: AppSpacing.sm,
   },
-  summaryTitle: {
-    color: AppColors.textPrimary,
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  summarySubtitle: {
+  progressLabel: {
     color: AppColors.textSecondary,
-    fontSize: 13,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  progressValue: {
+    color: AppColors.accentGold,
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  progressBarTrack: {
+    height: 8,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: AppRadii.full,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: AppColors.accentGold,
+    borderRadius: AppRadii.full,
+  },
+  progressSubtext: {
+    color: AppColors.textTertiary,
+    fontSize: 12,
+    marginTop: AppSpacing.sm,
+    textAlign: 'right',
   },
   filtersWrapper: {
     marginBottom: AppSpacing.md,
@@ -204,8 +249,8 @@ const styles = StyleSheet.create({
     paddingBottom: AppSpacing.xxl,
     gap: AppSpacing.md,
   },
-  cardWrapper: {
-    // for animation
+  cardCompleted: {
+    opacity: 0.6,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -234,12 +279,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: AppColors.accentGold,
-    paddingHorizontal: 6,
-    paddingVertical: 3,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
     borderRadius: AppRadii.xs,
     gap: 4,
   },
-  completedText: {
+  completedBadgeText: {
     color: AppColors.bgPrimary,
     fontSize: 10,
     fontWeight: '700',
@@ -254,19 +299,41 @@ const styles = StyleSheet.create({
     color: AppColors.textSecondary,
     fontSize: 13,
     lineHeight: 18,
+    marginBottom: AppSpacing.sm,
+  },
+  textMuted: {
+    color: AppColors.textTertiary,
+  },
+  cardMetaBox: {
+    backgroundColor: 'rgba(255,255,255,0.02)',
+    padding: AppSpacing.sm,
+    borderRadius: AppRadii.sm,
     marginBottom: AppSpacing.md,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  metaText: {
+    color: AppColors.textTertiary,
+    fontSize: 12,
+    flex: 1,
   },
   applyBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    borderTopWidth: 1,
-    borderTopColor: AppColors.borderSubtle,
-    paddingTop: AppSpacing.sm,
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(123, 94, 246, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(123, 94, 246, 0.3)',
+    borderRadius: AppRadii.md,
+    paddingVertical: 12,
   },
   applyBtnText: {
     color: AppColors.accentVioletLight,
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '600',
   },
 });

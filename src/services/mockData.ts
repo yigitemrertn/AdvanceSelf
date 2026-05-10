@@ -191,4 +191,24 @@ export const MockData = {
       completedToday: false,
     },
   ] as Recommendation[],
+
+  monthlyProgress: {
+    month: 'Mayıs 2026',
+    historicalScores: [
+      { day: 1, score: 72 },
+      { day: 5, score: 74 },
+      { day: 10, score: 73 },
+      { day: 15, score: 78 },
+      { day: 20, score: 81 },
+      { day: 25, score: 82 },
+      { day: 30, score: 84 },
+    ],
+    streakDays: 14,
+    metricChanges: [
+      { id: 'hydration', label: 'Nemlendirme', previous: 65, current: 78, change: 13 },
+      { id: 'pore', label: 'Gözenek', previous: 60, current: 62, change: 2 },
+      { id: 'elasticity', label: 'Elastikiyet', previous: 80, current: 91, change: 11 },
+      { id: 'tone', label: 'Ton Eşitliği', previous: 75, current: 73, change: -2 },
+    ]
+  }
 };
