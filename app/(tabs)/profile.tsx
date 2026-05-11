@@ -10,7 +10,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   User, Mail, Phone, Calendar, MapPin, Edit3, Camera, Trash2,
   Shield, Star, Award, TrendingUp, ChevronRight,
-  Bell, LogOut, Heart, Droplets, Sparkles, Check, X, Crown, Edit3
+  Bell, LogOut, Heart, Droplets, Sparkles, Check, X, Crown
 } from 'lucide-react-native';
 import { useUserStore } from '../../src/store/userStore';
 import { router } from 'expo-router';
