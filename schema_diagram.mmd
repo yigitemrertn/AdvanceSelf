@@ -1,0 +1,39 @@
+erDiagram
+    USERS ||--o| USER_PROFILES : has
+    USERS ||--o{ ANALYSES : has
+    USERS ||--o{ RECOMMENDATIONS : receives
+    ANALYSES ||--o{ RECOMMENDATIONS : generates
+
+    USERS {
+        int id PK
+        string email
+        string password_hash
+        datetime created_at
+    }
+    USER_PROFILES {
+        int user_id FK "PK"
+        date birth_date
+        string gender
+        decimal height
+        string body_shape
+        string face_shape
+        jsonb preferred_styles
+    }
+    ANALYSES {
+        int id PK
+        int user_id FK
+        datetime analysis_date
+        boolean is_first_analysis
+        decimal weight
+        string photo_url
+        string skin_type
+        jsonb facial_proportions
+    }
+    RECOMMENDATIONS {
+        int id PK
+        int user_id FK
+        int analysis_id FK
+        string category
+        jsonb content
+        datetime created_at
+    }
