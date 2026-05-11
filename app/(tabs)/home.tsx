@@ -1,173 +1,229 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, SafeAreaView, Pressable } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, SafeAreaView, Pressable, Dimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import Animated, { FadeInUp, FadeInDown, SlideInRight, SlideInDown } from 'react-native-reanimated';
-import { Bell, Clock, TrendingUp, ChevronRight, CheckCircle2, Circle } from 'lucide-react-native';
+import Animated, { FadeInUp, FadeInDown, SlideInRight, SlideInDown, useAnimatedStyle, withRepeat, withTiming, withSequence, Easing } from 'react-native-reanimated';
+import { Bell, TrendingUp, ChevronRight, CheckCircle2, Circle, Sparkles, Activity, Droplets, Sun, Wind } from 'lucide-react-native';
 import * as LucideIcons from 'lucide-react-native';
 
-import { AppColors, AppRadii, AppSpacing } from '../../src/theme/colors';
+import { AppColors, AppSpacing } from '../../src/theme/colors';
 import { MockData } from '../../src/services/mockData';
-import { SkinScoreRing } from '../../src/components/SkinScoreRing';
 import { GlassCard } from '../../src/components/GlassCard';
-import { MetricChip } from '../../src/components/MetricChip';
 import { router } from 'expo-router';
+
+const { width } = Dimensions.get('window');
+
+// Floating Animation Helper
+const FloatingView = ({ children, delay = 0 }: any) => {
+  const animatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [
+        {
+          translateY: withRepeat(
+            withSequence(
+              withTiming(-5, { duration: 2000, easing: Easing.inOut(Easing.ease) }),
+              withTiming(5, { duration: 2000, easing: Easing.inOut(Easing.ease) })
+            ),
+            -1,
+            true
+          ),
+        },
+      ],
+    };
+  });
+
+  return <Animated.View style={animatedStyle}>{children}</Animated.View>;
+};
 
 export default function HomeScreen() {
   const { currentUser, latestAnalysis, weeklyReport, quickActions } = MockData;
+  const [activeAction, setActiveAction] = useState(quickActions[0].id);
 
   const todayTasks = [
-    { id: '1', title: 'Sabah C Vitamini', completed: true },
-    { id: '2', title: '2.5 Litre Su Tüketimi', completed: false },
-    { id: '3', title: 'Akşam Çift Aşamalı Temizlik', completed: false },
+    { id: '1', title: 'Sabah C Vitamini', completed: true, time: '08:00', icon: Sun },
+    { id: '2', title: '2.5 Litre Su Tüketimi', completed: false, time: 'Gün boyu', icon: Droplets },
+    { id: '3', title: 'Akşam Çift Aşamalı Temizlik', completed: false, time: '21:00', icon: Wind },
   ];
 
   return (
     <View style={styles.container}>
-      {/* Background Ambient Blobs */}
-      <View style={[styles.blob, styles.blobTopLeft]} />
-      <View style={[styles.blob, styles.blobBottomRight]} />
+      {/* Dynamic Ambient Background */}
+      <View style={[styles.bgBlob, styles.bgBlob1]} />
+      <View style={[styles.bgBlob, styles.bgBlob2]} />
+      <View style={[styles.bgBlob, styles.bgBlob3]} />
 
       <SafeAreaView style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          
           {/* Header */}
           <Animated.View entering={FadeInUp.delay(100).springify()} style={styles.header}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.greetingLabel}>GÜNAYDIN</Text>
-              <Text style={styles.greetingName}>{currentUser.name}</Text>
-              <Text style={styles.greetingQuote}>"Bugün cildiniz için harika bir gün olacak."</Text>
+            <View style={styles.headerTextContainer}>
+              <Text style={styles.greetingLabel}>GÜNAYDIN, {currentUser.name.toUpperCase()}</Text>
+              <Text style={styles.greetingTitle}>Cildin harika{'\n'}görünüyor ✨</Text>
             </View>
-            <View style={styles.headerActions}>
-              <Pressable style={styles.iconBtn}>
-                <Bell size={20} color={AppColors.textSecondary} />
-              </Pressable>
-              <View style={styles.avatar}>
-                <Text style={styles.avatarText}>{currentUser.name[0]}{currentUser.surname[0]}</Text>
-              </View>
-            </View>
+            <Pressable style={styles.notificationBtn}>
+              <View style={styles.notificationDot} />
+              <Bell size={22} color={AppColors.textPrimary} />
+            </Pressable>
           </Animated.View>
 
-          {/* Skin Score Card */}
-          <Animated.View entering={FadeInDown.delay(200).springify()} style={styles.section}>
-            <GlassCard showGlow glowColor={AppColors.accentViolet}>
-              <View style={styles.scoreCardContent}>
-                <SkinScoreRing score={latestAnalysis.overallScore} size={220}>
-                  <View style={styles.scoreCenter}>
-                    <Text style={styles.scoreLabel}>CİLT SKORU</Text>
-                    <Text style={styles.scoreValue}>{latestAnalysis.overallScore}</Text>
-                    <Text style={styles.scoreMax}>/ 100</Text>
+          {/* Hero Score Card */}
+          <Animated.View entering={FadeInDown.delay(200).springify().damping(12)}>
+            <Pressable style={styles.heroCardContainer} onPress={() => router.push('/(tabs)/progress')}>
+              <LinearGradient
+                colors={['rgba(123, 94, 246, 0.95)', 'rgba(91, 63, 208, 0.85)']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.heroGradient}
+              >
+                {/* Inner Decor */}
+                <View style={styles.heroDecorCircle1} />
+                <View style={styles.heroDecorCircle2} />
+                
+                <View style={styles.heroTopRow}>
+                  <View style={styles.heroBadge}>
+                    <Sparkles size={14} color="#FFF" />
+                    <Text style={styles.heroBadgeText}>Genel Cilt Skoru</Text>
                   </View>
-                </SkinScoreRing>
+                  <View style={styles.trendBadge}>
+                    <TrendingUp size={14} color="#4ADE80" />
+                    <Text style={styles.trendText}>+2 Puan</Text>
+                  </View>
+                </View>
 
-                <Animated.View entering={FadeInUp.delay(800)} style={styles.nextScanChip}>
-                  <Clock size={14} color={AppColors.accentGold} />
-                  <Text style={styles.nextScanText}>
-                    Sonraki Profilleme: {latestAnalysis.nextScanIn} gün
-                  </Text>
-                </Animated.View>
-              </View>
-            </GlassCard>
+                <View style={styles.heroMainContent}>
+                  <FloatingView>
+                    <Text style={styles.heroScore}>{latestAnalysis.overallScore}</Text>
+                  </FloatingView>
+                  <View style={styles.heroScoreDetails}>
+                    <Text style={styles.heroMaxScore}>/100</Text>
+                    <Text style={styles.heroStatus}>Mükemmel Durum</Text>
+                  </View>
+                </View>
+
+                <View style={styles.heroFooter}>
+                  <View style={styles.heroProgressBg}>
+                    <Animated.View entering={SlideInRight.delay(800).springify()} style={[styles.heroProgressFill, { width: `${latestAnalysis.overallScore}%` }]} />
+                  </View>
+                  <Text style={styles.nextScanText}>Sonraki Profilleme: {latestAnalysis.nextScanIn} gün</Text>
+                </View>
+              </LinearGradient>
+            </Pressable>
           </Animated.View>
 
-          {/* Quick Actions */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>HIZLI ERİŞİM</Text>
+          {/* Quick Actions (Cards instead of pills) */}
+          <Animated.View entering={FadeInUp.delay(300).springify()} style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Hızlı İşlemler</Text>
+              <Pressable><Text style={styles.seeAllText}>Düzenle</Text></Pressable>
+            </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalScroll}>
               {quickActions.map((action, index) => {
-                const IconComponent = (LucideIcons as any)[action.iconName];
-                const isActive = index === 0;
+                const IconComponent = (LucideIcons as any)[action.iconName] || Activity;
+                const isActive = activeAction === action.id;
 
                 return (
-                  <Animated.View key={action.id} entering={SlideInRight.delay(200 + index * 100).springify()}>
-                    <Pressable onPress={() => router.push('/(tabs)/survey')}>
+                  <Animated.View key={action.id} entering={SlideInRight.delay(300 + index * 100).springify()}>
+                    <Pressable 
+                      onPress={() => {
+                        setActiveAction(action.id);
+                        if(index === 0) router.push('/(tabs)/survey');
+                      }}
+                    >
                       <LinearGradient
-                        colors={isActive ? ['#7B5EF6', '#5B3FD0'] : [AppColors.bgCard, AppColors.bgCard]}
-                        style={[styles.quickActionPill, !isActive && styles.quickActionInactiveBorder]}
+                        colors={isActive ? ['#7B5EF6', '#5B3FD0'] : ['rgba(255,255,255,0.03)', 'rgba(255,255,255,0.01)']}
+                        style={[styles.actionCard, !isActive && styles.actionCardInactive]}
                       >
-                        {IconComponent && <IconComponent size={16} color={isActive ? '#FFF' : AppColors.textSecondary} />}
-                        <Text style={[styles.quickActionText, isActive && styles.quickActionTextActive]}>
-                          {action.label}
-                        </Text>
+                        <View style={[styles.actionIconWrapper, isActive ? styles.iconActive : styles.iconInactive]}>
+                          <IconComponent size={24} color={isActive ? '#7B5EF6' : AppColors.textPrimary} />
+                        </View>
+                        <Text style={[styles.actionText, isActive && styles.actionTextActive]}>{action.label}</Text>
                       </LinearGradient>
                     </Pressable>
                   </Animated.View>
                 );
               })}
             </ScrollView>
-          </View>
+          </Animated.View>
 
-          {/* Daily Tasks */}
-          <Animated.View entering={SlideInDown.delay(300).springify()} style={styles.section}>
-            <View style={styles.metricsHeader}>
-              <Text style={styles.sectionTitle}>GÜNLÜK GÖREVLER</Text>
-              <Text style={styles.seeAllText}>1/3 Tamamlandı</Text>
+          {/* Daily Tasks (Modernized) */}
+          <Animated.View entering={SlideInDown.delay(400).springify()} style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Günün Görevleri</Text>
+              <View style={styles.taskProgressBadge}>
+                <Text style={styles.taskProgressText}>1/3 Tamamlandı</Text>
+              </View>
             </View>
             <View style={styles.tasksContainer}>
-              {todayTasks.map((task, i) => (
-                <GlassCard key={task.id} style={styles.taskCard}>
-                  <Pressable style={styles.taskRow}>
-                    {task.completed ? (
-                      <CheckCircle2 size={20} color={AppColors.statusSuccess} />
-                    ) : (
-                      <Circle size={20} color={AppColors.textTertiary} />
-                    )}
-                    <Text style={[styles.taskTitle, task.completed && styles.taskCompleted]}>
-                      {task.title}
-                    </Text>
-                  </Pressable>
-                </GlassCard>
-              ))}
+              {todayTasks.map((task, i) => {
+                const TaskIcon = task.icon;
+                return (
+                  <Animated.View key={task.id} entering={FadeInDown.delay(400 + i * 100).springify()}>
+                    <Pressable style={[styles.taskItem, task.completed && styles.taskItemCompleted]}>
+                      <View style={styles.taskIconContainer}>
+                        <TaskIcon size={20} color={task.completed ? AppColors.statusSuccess : AppColors.accentVioletLight} />
+                      </View>
+                      <View style={styles.taskInfo}>
+                        <Text style={[styles.taskTitle, task.completed && styles.taskTitleCompleted]}>{task.title}</Text>
+                        <Text style={styles.taskTime}>{task.time}</Text>
+                      </View>
+                      <Pressable style={styles.checkButton}>
+                        {task.completed ? (
+                          <CheckCircle2 size={24} color={AppColors.statusSuccess} />
+                        ) : (
+                          <Circle size={24} color={AppColors.borderSubtle} />
+                        )}
+                      </Pressable>
+                    </Pressable>
+                  </Animated.View>
+                );
+              })}
             </View>
           </Animated.View>
 
-          {/* Weekly Report Card */}
-          <Animated.View entering={SlideInDown.delay(400).springify()} style={styles.section}>
-            <GlassCard showGlow glowColor={AppColors.accentGold}>
-              <View style={styles.reportHeader}>
-                <LinearGradient colors={['#C9A96E', '#8A6F42']} style={styles.reportBadge}>
-                  <Text style={styles.reportBadgeText}>HAFTALIK RAPOR</Text>
-                </LinearGradient>
-                <ChevronRight size={16} color={AppColors.textTertiary} />
-              </View>
-              
-              <Text style={styles.reportTitle}>Haftalık Raporun Hazır ✦</Text>
-              
-              <View style={styles.deltaRow}>
-                <TrendingUp size={16} color={AppColors.accentVioletLight} />
-                <Text style={styles.deltaText}>+{weeklyReport.scoreDelta} puan bu hafta</Text>
-              </View>
-
-              <View style={styles.highlightsContainer}>
-                {weeklyReport.highlights.slice(0, 2).map((highlight, idx) => (
-                  <View key={idx} style={styles.highlightRow}>
-                    <View style={styles.highlightDot} />
-                    <Text style={styles.highlightText}>{highlight}</Text>
-                  </View>
-                ))}
+          {/* Weekly Report (Rich Card) */}
+          <Animated.View entering={SlideInDown.delay(500).springify()} style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Analiz Raporu</Text>
+            </View>
+            <GlassCard style={styles.reportCard}>
+              <View style={styles.reportRow}>
+                <View style={styles.reportIconWrapper}>
+                  <Sparkles size={24} color={AppColors.accentGold} />
+                </View>
+                <View style={styles.reportContent}>
+                  <Text style={styles.reportTitle}>Haftalık Cilt Özeti</Text>
+                  <Text style={styles.reportDesc}>Nem dengeniz %15 arttı. Rutininiz işe yarıyor!</Text>
+                </View>
+                <ChevronRight size={20} color={AppColors.textTertiary} />
               </View>
             </GlassCard>
           </Animated.View>
 
           {/* Skin Metrics Section */}
-          <View style={styles.section}>
-            <View style={styles.metricsHeader}>
-              <Text style={styles.sectionTitle}>METRİKLER</Text>
+          <Animated.View entering={FadeInUp.delay(600).springify()} style={[styles.section, { marginBottom: 100 }]}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Cilt Metrikleri</Text>
             </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalScroll}>
               {latestAnalysis.metrics.map((metric, index) => (
-                <Animated.View key={metric.label} entering={SlideInRight.delay(300 + index * 100).springify()}>
-                  <MetricChip
-                    label={metric.label}
-                    value={metric.value}
-                    unit={metric.unit}
-                    delta={metric.trendDelta}
-                    trendUp={metric.trend === 'up'}
-                  />
+                <Animated.View key={metric.label} entering={SlideInRight.delay(500 + index * 100).springify()}>
+                  <GlassCard style={styles.metricCard}>
+                    <Text style={styles.metricLabel}>{metric.label}</Text>
+                    <View style={styles.metricValueRow}>
+                      <Text style={styles.metricValue}>{metric.value}</Text>
+                      <Text style={styles.metricUnit}>{metric.unit}</Text>
+                    </View>
+                    <View style={[styles.metricTrend, metric.trend === 'up' ? styles.trendUp : styles.trendDown]}>
+                      <Text style={[styles.metricTrendText, metric.trend === 'up' ? styles.trendUpText : styles.trendDownText]}>
+                        {metric.trend === 'up' ? '+' : ''}{metric.trendDelta}
+                      </Text>
+                    </View>
+                  </GlassCard>
                 </Animated.View>
               ))}
             </ScrollView>
-          </View>
+          </Animated.View>
 
-          <View style={{ height: 80 }} />
         </ScrollView>
       </SafeAreaView>
     </View>
@@ -179,236 +235,389 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: AppColors.bgPrimary,
   },
-  blob: {
+  bgBlob: {
     position: 'absolute',
-    width: 300,
-    height: 300,
-    borderRadius: 150,
-    opacity: 0.15,
+    width: 400,
+    height: 400,
+    borderRadius: 200,
+    opacity: 0.12,
   },
-  blobTopLeft: {
-    top: -100,
+  bgBlob1: {
+    top: -150,
     left: -100,
-    backgroundColor: AppColors.accentViolet,
+    backgroundColor: '#7B5EF6',
   },
-  blobBottomRight: {
-    bottom: -50,
-    right: -100,
-    backgroundColor: AppColors.accentGold,
+  bgBlob2: {
+    top: '30%',
+    right: -200,
+    backgroundColor: '#FF3366',
+    opacity: 0.08,
+  },
+  bgBlob3: {
+    bottom: -100,
+    left: -50,
+    backgroundColor: '#00C2FF',
     opacity: 0.08,
   },
   scrollContent: {
-    paddingVertical: AppSpacing.md,
-  },
-  section: {
-    marginBottom: AppSpacing.lg,
+    paddingVertical: AppSpacing.lg,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: AppSpacing.md,
-    marginBottom: AppSpacing.md,
+    paddingHorizontal: AppSpacing.lg,
+    marginBottom: AppSpacing.xl,
+  },
+  headerTextContainer: {
+    flex: 1,
   },
   greetingLabel: {
-    color: AppColors.accentViolet,
+    color: AppColors.textTertiary,
     fontSize: 12,
     fontWeight: '700',
-    letterSpacing: 1.5,
+    letterSpacing: 2,
+    marginBottom: 4,
   },
-  greetingName: {
+  greetingTitle: {
     color: AppColors.textPrimary,
     fontSize: 28,
-    fontWeight: '300',
-  },
-  greetingQuote: {
-    color: AppColors.textTertiary,
-    fontSize: 12,
-    marginTop: 4,
-    fontStyle: 'italic',
-  },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: AppSpacing.sm,
-  },
-  iconBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: AppRadii.sm,
-    borderWidth: 1,
-    borderColor: AppColors.borderSubtle,
-    backgroundColor: AppColors.bgCard,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatar: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: AppColors.accentVioletDim,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarText: {
-    color: AppColors.textPrimary,
-    fontWeight: '700',
-    fontSize: 16,
-  },
-  scoreCardContent: {
-    alignItems: 'center',
-    paddingVertical: AppSpacing.md,
-  },
-  scoreCenter: {
-    alignItems: 'center',
-  },
-  scoreLabel: {
-    color: AppColors.textTertiary,
-    fontSize: 12,
-    fontWeight: '600',
-    letterSpacing: 1,
-  },
-  scoreValue: {
-    color: AppColors.textPrimary,
-    fontSize: 64,
     fontWeight: '800',
-    marginVertical: -5,
+    lineHeight: 34,
   },
-  scoreMax: {
-    color: AppColors.textTertiary,
-    fontSize: 14,
+  notificationBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  nextScanChip: {
+  notificationDot: {
+    position: 'absolute',
+    top: 12,
+    right: 14,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#FF3366',
+    zIndex: 2,
+  },
+  heroCardContainer: {
+    marginHorizontal: AppSpacing.lg,
+    borderRadius: 28,
+    shadowColor: '#7B5EF6',
+    shadowOffset: { width: 0, height: 15 },
+    shadowOpacity: 0.3,
+    shadowRadius: 30,
+    elevation: 15,
+    marginBottom: AppSpacing.xl,
+  },
+  heroGradient: {
+    padding: AppSpacing.xl,
+    borderRadius: 28,
+    overflow: 'hidden',
+    minHeight: 220,
+    justifyContent: 'space-between',
+  },
+  heroDecorCircle1: {
+    position: 'absolute',
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    top: -50,
+    right: -50,
+  },
+  heroDecorCircle2: {
+    position: 'absolute',
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    bottom: -50,
+    left: -20,
+  },
+  heroTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    zIndex: 1,
+  },
+  heroBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(201, 169, 110, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(201, 169, 110, 0.3)',
-    borderRadius: AppRadii.full,
-    paddingHorizontal: AppSpacing.md,
-    paddingVertical: AppSpacing.sm,
-    marginTop: AppSpacing.lg,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
     gap: 6,
   },
-  nextScanText: {
-    color: AppColors.accentGold,
+  heroBadgeText: {
+    color: '#FFF',
     fontSize: 12,
     fontWeight: '600',
   },
-  sectionTitle: {
-    color: AppColors.textTertiary,
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 1.5,
-    paddingHorizontal: AppSpacing.md,
-    marginBottom: AppSpacing.sm,
-  },
-  horizontalScroll: {
-    paddingHorizontal: AppSpacing.md,
-    gap: AppSpacing.sm,
-  },
-  quickActionPill: {
+  trendBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: AppSpacing.md,
-    paddingVertical: 10,
-    borderRadius: AppRadii.full,
-    gap: 8,
+    backgroundColor: 'rgba(74, 222, 128, 0.2)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 4,
   },
-  quickActionInactiveBorder: {
-    borderWidth: 1,
-    borderColor: AppColors.borderSubtle,
+  trendText: {
+    color: '#4ADE80',
+    fontSize: 12,
+    fontWeight: '700',
   },
-  quickActionText: {
-    color: AppColors.textSecondary,
-    fontSize: 13,
-    fontWeight: '500',
+  heroMainContent: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    marginTop: 20,
+    zIndex: 1,
   },
-  quickActionTextActive: {
-    color: AppColors.textPrimary,
+  heroScore: {
+    fontSize: 72,
+    fontWeight: '900',
+    color: '#FFF',
+    lineHeight: 80,
+    letterSpacing: -2,
+  },
+  heroScoreDetails: {
+    marginLeft: 12,
+    marginBottom: 12,
+  },
+  heroMaxScore: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 18,
     fontWeight: '600',
   },
+  heroStatus: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: '500',
+    marginTop: 4,
+  },
+  heroFooter: {
+    marginTop: 20,
+    zIndex: 1,
+  },
+  heroProgressBg: {
+    height: 6,
+    backgroundColor: 'rgba(0,0,0,0.2)',
+    borderRadius: 3,
+    overflow: 'hidden',
+    marginBottom: 8,
+  },
+  heroProgressFill: {
+    height: '100%',
+    backgroundColor: '#FFF',
+    borderRadius: 3,
+  },
+  nextScanText: {
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  section: {
+    marginBottom: AppSpacing.xl,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: AppSpacing.lg,
+    marginBottom: AppSpacing.md,
+  },
+  sectionTitle: {
+    color: AppColors.textPrimary,
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  seeAllText: {
+    color: AppColors.accentVioletLight,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  horizontalScroll: {
+    paddingHorizontal: AppSpacing.lg,
+    gap: 16,
+  },
+  actionCard: {
+    width: 110,
+    height: 130,
+    borderRadius: 24,
+    padding: 16,
+    justifyContent: 'space-between',
+  },
+  actionCardInactive: {
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  actionIconWrapper: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  iconActive: {
+    backgroundColor: '#FFF',
+  },
+  iconInactive: {
+    backgroundColor: 'rgba(255,255,255,0.1)',
+  },
+  actionText: {
+    color: AppColors.textSecondary,
+    fontSize: 14,
+    fontWeight: '600',
+    marginTop: 8,
+  },
+  actionTextActive: {
+    color: '#FFF',
+  },
+  taskProgressBadge: {
+    backgroundColor: 'rgba(123, 94, 246, 0.1)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  taskProgressText: {
+    color: AppColors.accentVioletLight,
+    fontSize: 12,
+    fontWeight: '700',
+  },
   tasksContainer: {
-    paddingHorizontal: AppSpacing.md,
-    gap: AppSpacing.sm,
+    paddingHorizontal: AppSpacing.lg,
+    gap: 12,
   },
-  taskCard: {
-    padding: AppSpacing.sm,
-  },
-  taskRow: {
+  taskItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: AppSpacing.md,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
+    padding: 16,
+    borderRadius: 20,
+  },
+  taskItemCompleted: {
+    opacity: 0.6,
+  },
+  taskIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  taskInfo: {
+    flex: 1,
   },
   taskTitle: {
     color: AppColors.textPrimary,
-    fontSize: 14,
-    fontWeight: '500',
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 4,
   },
-  taskCompleted: {
-    color: AppColors.textTertiary,
+  taskTitleCompleted: {
     textDecorationLine: 'line-through',
+    color: AppColors.textTertiary,
   },
-  reportHeader: {
+  taskTime: {
+    color: AppColors.textTertiary,
+    fontSize: 13,
+  },
+  checkButton: {
+    padding: 4,
+  },
+  reportCard: {
+    padding: 20,
+    borderRadius: 24,
+    marginHorizontal: AppSpacing.lg,
+  },
+  reportRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: AppSpacing.md,
   },
-  reportBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: AppRadii.xs,
+  reportIconWrapper: {
+    width: 50,
+    height: 50,
+    borderRadius: 16,
+    backgroundColor: 'rgba(201, 169, 110, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
   },
-  reportBadgeText: {
-    color: AppColors.bgPrimary,
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 1,
+  reportContent: {
+    flex: 1,
   },
   reportTitle: {
     color: AppColors.textPrimary,
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: AppSpacing.xs,
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 4,
   },
-  deltaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginBottom: AppSpacing.sm,
-  },
-  deltaText: {
-    color: AppColors.accentVioletLight,
-    fontSize: 14,
-  },
-  highlightsContainer: {
-    gap: 6,
-  },
-  highlightRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  highlightDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: AppColors.accentGold,
-  },
-  highlightText: {
+  reportDesc: {
     color: AppColors.textSecondary,
     fontSize: 13,
+    lineHeight: 18,
   },
-  metricsHeader: {
-    flexDirection: 'row',
+  metricCard: {
+    width: 140,
+    padding: 16,
+    borderRadius: 20,
     justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingRight: AppSpacing.md,
+    minHeight: 120,
   },
-  seeAllText: {
-    color: AppColors.accentViolet,
-    fontSize: 12,
+  metricLabel: {
+    color: AppColors.textSecondary,
+    fontSize: 14,
     fontWeight: '600',
+    marginBottom: 8,
+  },
+  metricValueRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    marginBottom: 12,
+  },
+  metricValue: {
+    color: AppColors.textPrimary,
+    fontSize: 28,
+    fontWeight: '800',
+    lineHeight: 32,
+  },
+  metricUnit: {
+    color: AppColors.textTertiary,
+    fontSize: 14,
+    marginLeft: 4,
+    marginBottom: 4,
+  },
+  metricTrend: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  trendUp: {
+    backgroundColor: 'rgba(74, 222, 128, 0.15)',
+  },
+  trendDown: {
+    backgroundColor: 'rgba(255, 51, 102, 0.15)',
+  },
+  metricTrendText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  trendUpText: {
+    color: '#4ADE80',
+  },
+  trendDownText: {
+    color: '#FF3366',
   },
 });

@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, Pressable, SafeAreaView } from 'react-native';
+import { View, Text, TextInput, StyleSheet, Pressable, SafeAreaView, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
+import { AntDesign } from '@expo/vector-icons';
 import { AppColors, AppRadii, AppSpacing } from '../src/theme/colors';
 
 export default function LoginScreen() {
@@ -23,7 +24,12 @@ export default function LoginScreen() {
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.content}>
           <Animated.View entering={FadeInUp.delay(200).springify()} style={styles.header}>
-            <Text style={styles.logoText}>LUMERA AI</Text>
+            <View style={styles.logoContainer}>
+              <Text style={styles.logoText}>LUMERA AI</Text>
+              <View style={styles.sparkleBadge}>
+                <AntDesign name="star" size={14} color={AppColors.accentGold} />
+              </View>
+            </View>
             <Text style={styles.subtitle}>Cildinizin Geleceği</Text>
           </Animated.View>
 
@@ -70,13 +76,17 @@ export default function LoginScreen() {
               <View style={styles.line} />
             </View>
 
-            <Pressable style={({ pressed }) => [styles.socialBtn, pressed && { opacity: 0.8 }]}>
-              <Text style={styles.socialText}>Google ile Devam Et</Text>
-            </Pressable>
-            
-            <Pressable style={({ pressed }) => [styles.socialBtn, pressed && { opacity: 0.8 }]}>
-              <Text style={styles.socialText}>Apple ile Devam Et</Text>
-            </Pressable>
+            <View style={styles.socialContainer}>
+              <Pressable style={({ pressed }) => [styles.socialBtn, styles.googleBtn, pressed && styles.pressedBtn]}>
+                <AntDesign name="google" size={20} color="#000" />
+                <Text style={styles.googleText}>Google</Text>
+              </Pressable>
+              
+              <Pressable style={({ pressed }) => [styles.socialBtn, styles.appleBtn, pressed && styles.pressedBtn]}>
+                <AntDesign name="apple1" size={20} color="#FFF" />
+                <Text style={styles.appleText}>Apple</Text>
+              </Pressable>
+            </View>
 
           </Animated.View>
 
@@ -128,6 +138,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: AppSpacing.xxxl,
   },
+  logoContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  sparkleBadge: {
+    position: 'absolute',
+    right: -18,
+    top: -8,
+  },
   logoText: {
     fontSize: 36,
     fontWeight: '800',
@@ -153,23 +172,31 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   input: {
-    backgroundColor: 'rgba(22, 24, 38, 0.6)',
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
     borderWidth: 1,
-    borderColor: AppColors.borderSubtle,
-    borderRadius: AppRadii.md,
-    paddingHorizontal: AppSpacing.md,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 16,
+    paddingHorizontal: AppSpacing.lg,
     paddingVertical: AppSpacing.md,
     color: AppColors.textPrimary,
     fontSize: 16,
+    height: 56,
   },
   loginBtn: {
-    marginTop: AppSpacing.sm,
-    borderRadius: AppRadii.md,
+    marginTop: AppSpacing.md,
+    borderRadius: 16,
     overflow: 'hidden',
+    shadowColor: '#7B5EF6',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
   },
   loginGradient: {
-    paddingVertical: AppSpacing.md,
+    paddingVertical: 16,
     alignItems: 'center',
+    justifyContent: 'center',
+    height: 56,
   },
   loginText: {
     color: '#FFF',
@@ -180,12 +207,12 @@ const styles = StyleSheet.create({
   divider: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: AppSpacing.md,
+    marginVertical: AppSpacing.lg,
   },
   line: {
     flex: 1,
     height: 1,
-    backgroundColor: AppColors.borderSubtle,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
   },
   orText: {
     color: AppColors.textTertiary,
@@ -193,18 +220,41 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
   },
-  socialBtn: {
-    backgroundColor: AppColors.bgSecondary,
-    borderWidth: 1,
-    borderColor: AppColors.borderSubtle,
-    borderRadius: AppRadii.md,
-    paddingVertical: AppSpacing.md,
-    alignItems: 'center',
+  socialContainer: {
+    flexDirection: 'row',
+    gap: 16,
   },
-  socialText: {
-    color: AppColors.textPrimary,
+  socialBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderRadius: 16,
+    height: 56,
+    gap: 10,
+  },
+  googleBtn: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E5E5E5',
+  },
+  appleBtn: {
+    backgroundColor: '#111111',
+    borderColor: '#333333',
+  },
+  googleText: {
+    color: '#000000',
     fontSize: 15,
     fontWeight: '600',
+  },
+  appleText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  pressedBtn: {
+    transform: [{ scale: 0.97 }],
+    opacity: 0.9,
   },
   footer: {
     flexDirection: 'row',
