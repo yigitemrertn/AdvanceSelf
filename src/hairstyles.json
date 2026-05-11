@@ -1,0 +1,170 @@
+[
+  {
+    "name": "Classic Side Part",
+    "gender": "male",
+    "optimal_face": ["oval", "square", "oblong"],
+    "link": "https://tr.pinterest.com/search/pins/?q=classic+side+part+men+haircut"
+  },
+  {
+    "name": "Textured Crop",
+    "gender": "male",
+    "optimal_face": ["oval", "round", "square", "heart"],
+    "link": "https://tr.pinterest.com/search/pins/?q=textured+crop+men+haircut"
+  },
+  {
+    "name": "Quiff",
+    "gender": "male",
+    "optimal_face": ["round", "heart", "diamond"],
+    "link": "https://tr.pinterest.com/search/pins/?q=quiff+hairstyle+men"
+  },
+  {
+    "name": "Pompadour",
+    "gender": "male",
+    "optimal_face": ["oval", "square", "diamond", "triangle"],
+    "link": "https://tr.pinterest.com/search/pins/?q=pompadour+hairstyle+men"
+  },
+  {
+    "name": "Buzz Cut",
+    "gender": "male",
+    "optimal_face": ["oval", "square", "diamond"],
+    "link": "https://tr.pinterest.com/search/pins/?q=buzz+cut+men+hairstyle"
+  },
+  {
+    "name": "Undercut",
+    "gender": "male",
+    "optimal_face": ["oval", "round", "heart"],
+    "link": "https://tr.pinterest.com/search/pins/?q=undercut+hairstyle+men"
+  },
+  {
+    "name": "Slick Back",
+    "gender": "male",
+    "optimal_face": ["oval", "square", "diamond"],
+    "link": "https://tr.pinterest.com/search/pins/?q=slick+back+hairstyle+men"
+  },
+  {
+    "name": "Crew Cut",
+    "gender": "male",
+    "optimal_face": ["oval", "square", "oblong"],
+    "link": "https://tr.pinterest.com/search/pins/?q=crew+cut+men+hairstyle"
+  },
+  {
+    "name": "High Fade",
+    "gender": "male",
+    "optimal_face": ["oval", "round", "heart", "triangle"],
+    "link": "https://tr.pinterest.com/search/pins/?q=high+fade+haircut+men"
+  },
+  {
+    "name": "Low Fade",
+    "gender": "male",
+    "optimal_face": ["oval", "square", "oblong", "diamond"],
+    "link": "https://tr.pinterest.com/search/pins/?q=low+fade+haircut+men"
+  },
+  {
+    "name": "French Crop",
+    "gender": "male",
+    "optimal_face": ["oval", "heart", "oblong"],
+    "link": "https://tr.pinterest.com/search/pins/?q=french+crop+haircut+men"
+  },
+  {
+    "name": "Man Bun",
+    "gender": "male",
+    "optimal_face": ["oval", "square", "diamond"],
+    "link": "https://tr.pinterest.com/search/pins/?q=man+bun+hairstyle+men"
+  },
+  {
+    "name": "Curtain Bangs",
+    "gender": "unisex",
+    "optimal_face": ["round", "square", "triangle", "oblong"],
+    "link": "https://tr.pinterest.com/search/pins/?q=curtain+bangs+hairstyle"
+  },
+  {
+    "name": "Curly Top Fade",
+    "gender": "male",
+    "optimal_face": ["oval", "round", "heart", "diamond"],
+    "link": "https://tr.pinterest.com/search/pins/?q=curly+top+fade+men+haircut"
+  },
+  {
+    "name": "Messy Layers",
+    "gender": "unisex",
+    "optimal_face": ["oval", "square", "oblong"],
+    "link": "https://tr.pinterest.com/search/pins/?q=messy+layers+hairstyle"
+  },
+  {
+    "name": "Classic Bob",
+    "gender": "female",
+    "optimal_face": ["oval", "heart", "diamond"],
+    "link": "https://tr.pinterest.com/search/pins/?q=classic+bob+haircut+women"
+  },
+  {
+    "name": "Long Layers",
+    "gender": "female",
+    "optimal_face": ["round", "square", "triangle"],
+    "link": "https://tr.pinterest.com/search/pins/?q=long+layers+hairstyle+women"
+  },
+  {
+    "name": "Pixie Cut",
+    "gender": "female",
+    "optimal_face": ["oval", "heart", "diamond"],
+    "link": "https://tr.pinterest.com/search/pins/?q=pixie+cut+women+hairstyle"
+  },
+  {
+    "name": "Lob",
+    "gender": "female",
+    "optimal_face": ["oval", "round", "square", "heart"],
+    "link": "https://tr.pinterest.com/search/pins/?q=lob+long+bob+haircut+women"
+  },
+  {
+    "name": "Beach Waves",
+    "gender": "female",
+    "optimal_face": ["oval", "square", "diamond", "oblong"],
+    "link": "https://tr.pinterest.com/search/pins/?q=beach+waves+hairstyle+women"
+  },
+  {
+    "name": "Sleek Straight",
+    "gender": "female",
+    "optimal_face": ["oval", "heart", "diamond"],
+    "link": "https://tr.pinterest.com/search/pins/?q=sleek+straight+hair+women"
+  },
+  {
+    "name": "Shag Cut",
+    "gender": "female",
+    "optimal_face": ["oval", "square", "diamond"],
+    "link": "https://tr.pinterest.com/search/pins/?q=shag+cut+hairstyle+women"
+  },
+  {
+    "name": "Classic Updo",
+    "gender": "female",
+    "optimal_face": ["oval", "heart", "oblong"],
+    "link": "https://tr.pinterest.com/search/pins/?q=classic+updo+hairstyle+women"
+  },
+  {
+    "name": "Natural Curls",
+    "gender": "female",
+    "optimal_face": ["oval", "heart", "diamond", "oblong"],
+    "link": "https://tr.pinterest.com/search/pins/?q=natural+curls+hairstyle+women"
+  },
+  {
+    "name": "Blunt Cut",
+    "gender": "female",
+    "optimal_face": ["oval", "heart", "diamond"],
+    "link": "https://tr.pinterest.com/search/pins/?q=blunt+cut+hairstyle+women"
+  },
+  {
+    "name": "Wolf Cut",
+    "gender": "unisex",
+    "optimal_face": ["oval", "round", "square"],
+    "link": "https://tr.pinterest.com/search/pins/?q=wolf+cut+hairstyle"
+  },
+  {
+    "name": "Modern Mullet",
+    "gender": "unisex",
+    "optimal_face": ["oval", "square", "diamond"],
+    "link": "https://tr.pinterest.com/search/pins/?q=modern+mullet+hairstyle"
+  },
+  {
+    "name": "Braided Styles",
+    "gender": "female",
+    "optimal_face": ["oval", "round", "heart"],
+    "link": "https://tr.pinterest.com/search/pins/?q=braided+hairstyle+women"
+  }
+]
