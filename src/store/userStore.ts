@@ -11,17 +11,12 @@ export interface Task {
   description: string;
 }
 
-interface UserProfile {
-  name: string;
-  email: string;
-  bio: string;
-  photoUri: string | null;
-}
-
 interface UserState {
-  profile: UserProfile;
+  userId: number | null;
+  token: string | null;
   tasks: Task[];
-  updateProfile: (profile: Partial<UserProfile>) => void;
+  setAuth: (userId: number, token: string) => void;
+  logout: () => void;
   toggleTask: (id: string) => void;
   resetTasks: () => void;
 }
@@ -29,12 +24,8 @@ interface UserState {
 export const useUserStore = create<UserState>()(
   persist(
     (set) => ({
-      profile: {
-        name: 'Elena Kovač',
-        email: 'elena.kovac@lumera.ai',
-        bio: 'Cilt bakımı ve kişisel gelişim tutkunu. Lumera ile her gün kendimi geliştiriyorum.',
-        photoUri: null,
-      },
+      userId: null,
+      token: null,
       tasks: [
         { 
           id: '1', 
@@ -42,7 +33,7 @@ export const useUserStore = create<UserState>()(
           completed: false, 
           time: '08:00', 
           category: 'Bakım',
-          description: 'C vitamini, cildinizi aydınlatır ve serbest radikallere karşı korur. Temizlenmiş cilde 3-4 damla uygulayın ve güneş kremi ile kilitleyin.'
+          description: 'C vitamini, cildinizi aydınlatır ve serbest radikallere karşı korur.'
         },
         { 
           id: '2', 
@@ -58,13 +49,14 @@ export const useUserStore = create<UserState>()(
           completed: false, 
           time: '21:00', 
           category: 'Yenileme',
-          description: 'Retinol, hücre yenilenmesini hızlandırır. Bezelye tanesi kadar ürünü kuru cilde uygulayın. Başlangıçta haftada 2-3 gece kullanın.'
+          description: 'Retinol, hücre yenilenmesini hızlandırır. Bezelye tanesi kadar ürünü kuru cilde uygulayın.'
         },
       ],
-      updateProfile: (updates) => set((state) => ({ profile: { ...state.profile, ...updates } })),
+      setAuth: (userId, token) => set({ userId, token }),
+      logout: () => set({ userId: null, token: null }),
       toggleTask: (id) => set((state) => ({
         tasks: state.tasks.map((t) => 
-          t.id === id ? { ...t, completed: true } : t
+          t.id === id ? { ...t, completed: !t.completed } : t
         ),
       })),
       resetTasks: () => set((state) => ({

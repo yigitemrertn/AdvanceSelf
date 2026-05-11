@@ -5,12 +5,61 @@ import { Calendar, Flame, TrendingUp, TrendingDown, Minus } from 'lucide-react-n
 import Svg, { Path, Circle as SVGCircle, Defs, LinearGradient as SVGLinearGradient, Stop } from 'react-native-svg';
 
 import { AppColors, AppRadii, AppSpacing } from '../../src/theme/colors';
-import { MockData } from '../../src/services/mockData';
 import { GlassCard } from '../../src/components/GlassCard';
+import { api } from '../../src/services/api';
+import { useUserStore } from '../../src/store/userStore';
+import { ActivityIndicator } from 'react-native';
 
 export default function ProgressScreen() {
-  const { monthlyProgress } = MockData;
-  const { historicalScores, metricChanges } = monthlyProgress;
+  const { userId } = useUserStore();
+  const [loading, setLoading] = React.useState(true);
+  const [historicalScores, setHistoricalScores] = React.useState<any[]>([]);
+  const [metricChanges, setMetricChanges] = React.useState<any[]>([]);
+
+  React.useEffect(() => {
+    if (userId) {
+      api.progress.getHistory(userId).then(res => {
+        if (res && res.items && res.items.length > 0) {
+          const mappedScores = res.items.map((item: any, idx: number) => ({
+            day: idx + 1,
+            score: Math.round(item.delta_weight || 70) // Using weight as placeholder score for now
+          }));
+          setHistoricalScores(mappedScores);
+          
+          if (res.items[0].delta_metrics) {
+            const metrics = res.items[0].delta_metrics;
+            const mappedChanges = Object.keys(metrics).map(k => ({
+              id: k,
+              label: k.replace(/_/g, ' '),
+              change: typeof metrics[k] === 'number' ? metrics[k] : 0,
+              current: 80,
+              previous: 80
+            }));
+            setMetricChanges(mappedChanges);
+          }
+        }
+        setLoading(false);
+      }).catch(e => {
+        console.error(e);
+        setLoading(false);
+      });
+    } else {
+      setLoading(false);
+    }
+  }, [userId]);
+
+  if (loading) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={AppColors.accentViolet} />
+      </View>
+    );
+  }
+
+  // Graceful fallback if no history
+  if (historicalScores.length === 0) {
+    historicalScores.push({ day: 1, score: 50 }, { day: 2, score: 50 });
+  }
 
   // Çizgi Grafik Hesaplamaları (Basit Spline Simülasyonu)
   const CHART_WIDTH = 300;
@@ -42,7 +91,7 @@ export default function ProgressScreen() {
         {/* Header */}
         <Animated.View entering={FadeInUp.delay(100)} style={styles.header}>
           <Text style={styles.headerTitle}>İLERLEME</Text>
-          <Text style={styles.headerSubtitle}>{monthlyProgress.month} Dönemi Cilt Gelişiminiz</Text>
+          <Text style={styles.headerSubtitle}>Tüm Zamanların Cilt Gelişiminiz</Text>
         </Animated.View>
 
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -55,8 +104,8 @@ export default function ProgressScreen() {
                   <Flame size={28} color={AppColors.accentGold} />
                 </View>
                 <View style={styles.streakInfo}>
-                  <Text style={styles.streakTitle}>{monthlyProgress.streakDays} Günlük Seri!</Text>
-                  <Text style={styles.streakDesc}>Rutinini hiç aksatmadın, harika gidiyorsun.</Text>
+                  <Text style={styles.streakTitle}>Analizlerinizi Sürdürün!</Text>
+                  <Text style={styles.streakDesc}>Gelişimi görmek için her hafta analiz yapın.</Text>
                 </View>
                 <Calendar size={24} color={AppColors.textTertiary} />
               </View>

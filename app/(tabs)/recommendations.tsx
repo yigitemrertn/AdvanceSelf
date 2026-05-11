@@ -15,8 +15,11 @@ import {
 import * as LucideIcons from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { AppColors, AppRadii, AppSpacing } from '../../src/theme/colors';
-import { MockData, RecommendationCategory, Recommendation } from '../../src/services/mockData';
+import { RecommendationCategory, Recommendation } from '../../src/services/mockData';
 import { GlassCard } from '../../src/components/GlassCard';
+import { api } from '../../src/services/api';
+import { useUserStore } from '../../src/store/userStore';
+import { ActivityIndicator } from 'react-native';
 
 // ─── Filter tabs ──────────────────────────────────────────────────────────────
 const FILTERS: { id: RecommendationCategory; label: string; icon: any }[] = [
@@ -149,14 +152,41 @@ const DetailModal: React.FC<{
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 export default function RecommendationsScreen() {
+  const { userId } = useUserStore();
   const [activeFilter, setActiveFilter] = useState<RecommendationCategory>('all');
-  const [recs, setRecs] = useState(MockData.recommendations);
+  const [recs, setRecs] = useState<Recommendation[]>([]);
   const [selected, setSelected] = useState<Recommendation | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  React.useEffect(() => {
+    if (userId) {
+      api.recommendations.getLatest(userId).then(res => {
+        if (res && res.items) {
+          const mapped = res.items.map((item: any, idx: number) => ({
+            id: `rec_${idx}`,
+            title: item.content?.title || 'AI Önerisi',
+            description: item.content?.description || 'Yeni bir öneriniz var.',
+            category: item.category as any || 'routine',
+            priority: item.content?.priority || 'medium',
+            iconName: item.content?.iconName || 'Star',
+            completedToday: false,
+          }));
+          setRecs(mapped);
+        }
+        setLoading(false);
+      }).catch(e => {
+        console.error(e);
+        setLoading(false);
+      });
+    } else {
+      setLoading(false);
+    }
+  }, [userId]);
 
   const filtered = activeFilter === 'all' ? recs : recs.filter(r => r.category === activeFilter);
   const total = recs.length;
   const completed = recs.filter(r => r.completedToday).length;
-  const pct = Math.round((completed / total) * 100);
+  const pct = total === 0 ? 0 : Math.round((completed / total) * 100);
 
   const progressWidth = useSharedValue(0);
   React.useEffect(() => {

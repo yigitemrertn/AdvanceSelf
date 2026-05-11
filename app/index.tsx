@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, StyleSheet, Pressable, SafeAreaView, Platform } from 'react-native';
 import { router } from 'expo-router';
+import { Alert, ActivityIndicator } from 'react-native';
+import { api } from '../src/services/api';
+import { useUserStore } from '../src/store/userStore';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { AntDesign } from '@expo/vector-icons';
@@ -10,9 +13,26 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  const handleLogin = () => {
-    // Şimdilik sadece Ana Sayfa'ya yönlendiriyor
-    router.replace('/(tabs)/home');
+  const setAuth = useUserStore((state) => state.setAuth);
+  const [loading, setLoading] = useState(false);
+
+  const handleLogin = async () => {
+    if (!email || !password) {
+      Alert.alert('Hata', 'Lütfen e-posta ve şifrenizi girin.');
+      return;
+    }
+    setLoading(true);
+    try {
+      const response = await api.auth.login({ email, password });
+      if (response && response.access_token) {
+        setAuth(response.user_id, response.access_token);
+        router.replace('/(tabs)/home');
+      }
+    } catch (error: any) {
+      Alert.alert('Giriş Başarısız', error.message || 'Lütfen bilgilerinizi kontrol edin.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -66,7 +86,11 @@ export default function LoginScreen() {
                 end={{ x: 1, y: 1 }}
                 style={styles.loginGradient}
               >
-                <Text style={styles.loginText}>Giriş Yap</Text>
+                {loading ? (
+                  <ActivityIndicator color="#FFF" />
+                ) : (
+                  <Text style={styles.loginText}>Giriş Yap</Text>
+                )}
               </LinearGradient>
             </Pressable>
 
@@ -83,7 +107,7 @@ export default function LoginScreen() {
               </Pressable>
               
               <Pressable style={({ pressed }) => [styles.socialBtn, styles.appleBtn, pressed && styles.pressedBtn]}>
-                <AntDesign name="apple1" size={20} color="#FFF" />
+                <AntDesign name="apple" size={20} color="#FFF" />
                 <Text style={styles.appleText}>Apple</Text>
               </Pressable>
             </View>

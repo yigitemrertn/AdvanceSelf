@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, SafeAreaView, Pressable, Dimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInUp, FadeInDown, SlideInRight, SlideInDown, useAnimatedStyle, withRepeat, withTiming, withSequence, Easing } from 'react-native-reanimated';
@@ -6,10 +6,11 @@ import { Bell, TrendingUp, ChevronRight, CheckCircle2, Circle, Sparkles, Activit
 import * as LucideIcons from 'lucide-react-native';
 
 import { AppColors, AppSpacing } from '../../src/theme/colors';
-import { MockData } from '../../src/services/mockData';
 import { GlassCard } from '../../src/components/GlassCard';
 import { router } from 'expo-router';
 import { useUserStore } from '../../src/store/userStore';
+import { api } from '../../src/services/api';
+import { ActivityIndicator } from 'react-native';
 
 const { width, height } = Dimensions.get('window');
 
@@ -36,10 +37,45 @@ const FloatingView = ({ children, delay = 0 }: any) => {
 };
 
 export default function HomeScreen() {
-  const { tasks, toggleTask } = useUserStore();
+  const { tasks, toggleTask, userId } = useUserStore();
+  const [profile, setProfile] = useState<any>(null);
+  const [latestAnalysis, setLatestAnalysis] = useState<any>(null);
+  const [activeAction, setActiveAction] = useState('scan');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (userId) {
+      Promise.all([
+        api.profile.get(userId).catch(() => null),
+        api.analysis.getLatest(userId).catch(() => null)
+      ]).then(([prof, an]) => {
+        if (prof) setProfile(prof);
+        if (an) setLatestAnalysis(an);
+        setLoading(false);
+      });
+    } else {
+      setLoading(false);
+    }
+  }, [userId]);
+
   const completedCount = tasks.filter(t => t.completed).length;
   const totalCount = tasks.length;
   const allDone = completedCount === totalCount && totalCount > 0;
+
+  const quickActions = [
+    { id: 'scan', label: 'Tara', iconName: 'ScanFace', route: '/scan' },
+    { id: 'progress', label: 'İlerleme', iconName: 'TrendingUp', route: '/progress' },
+    { id: 'routine', label: 'Rutin', iconName: 'CheckCircle2', route: '/routine' },
+    { id: 'makeup', label: 'Makyaj', iconName: 'Brush', route: '/makeup' },
+  ];
+
+  if (loading) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={AppColors.accentViolet} />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -54,7 +90,7 @@ export default function HomeScreen() {
           {/* Header */}
           <Animated.View entering={FadeInUp.delay(100).springify()} style={[styles.header, { paddingTop: 60 }]}>
             <View style={styles.headerTextContainer}>
-              <Text style={styles.greetingLabel}>GÜNAYDIN, {MockData.currentUser.name.toUpperCase()}</Text>
+              <Text style={styles.greetingLabel}>GÜNAYDIN, {(profile?.full_name || 'KULLANICI').toUpperCase()}</Text>
               <Text style={styles.greetingTitle}>Cildin harika{'\n'}görünüyor ✨</Text>
             </View>
             <Pressable style={styles.notificationBtn}>
@@ -89,19 +125,19 @@ export default function HomeScreen() {
 
                 <View style={styles.heroMainContent}>
                   <FloatingView>
-                    <Text style={styles.heroScore}>{latestAnalysis.overallScore}</Text>
+                    <Text style={styles.heroScore}>{latestAnalysis?.weight || '--'}</Text>
                   </FloatingView>
                   <View style={styles.heroScoreDetails}>
-                    <Text style={styles.heroMaxScore}>/100</Text>
-                    <Text style={styles.heroStatus}>Mükemmel Durum</Text>
+                    <Text style={styles.heroMaxScore}>kg</Text>
+                    <Text style={styles.heroStatus}>Mevcut Kilo</Text>
                   </View>
                 </View>
 
                 <View style={styles.heroFooter}>
                   <View style={styles.heroProgressBg}>
-                    <Animated.View entering={SlideInRight.delay(800).springify()} style={[styles.heroProgressFill, { width: `${latestAnalysis.overallScore}%` }]} />
+                    <Animated.View entering={SlideInRight.delay(800).springify()} style={[styles.heroProgressFill, { width: `75%` }]} />
                   </View>
-                  <Text style={styles.nextScanText}>Sonraki Profilleme: {latestAnalysis.nextScanIn} gün</Text>
+                  <Text style={styles.nextScanText}>Cilt Tipi: {latestAnalysis?.skin_type || 'Bilinmiyor'}</Text>
                 </View>
               </LinearGradient>
             </Pressable>
@@ -224,25 +260,24 @@ export default function HomeScreen() {
           {/* Skin Metrics Section */}
           <Animated.View entering={FadeInUp.delay(600).springify()} style={[styles.section, { marginBottom: 100 }]}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Cilt Metrikleri</Text>
+              <Text style={styles.sectionTitle}>Yüz Oranları</Text>
             </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalScroll}>
-              {latestAnalysis.metrics.map((metric, index) => (
-                <Animated.View key={metric.label} entering={SlideInRight.delay(500 + index * 100).springify()}>
+              {latestAnalysis?.facial_proportions && Object.entries(latestAnalysis.facial_proportions)
+                .filter(([_, value]) => typeof value !== 'object' && value !== null)
+                .map(([key, value], index) => (
+                <Animated.View key={key} entering={SlideInRight.delay(500 + index * 100).springify()}>
                   <GlassCard style={styles.metricCard}>
-                    <Text style={styles.metricLabel}>{metric.label}</Text>
+                    <Text style={styles.metricLabel}>{key.replace(/_/g, ' ')}</Text>
                     <View style={styles.metricValueRow}>
-                      <Text style={styles.metricValue}>{metric.value}</Text>
-                      <Text style={styles.metricUnit}>{metric.unit}</Text>
-                    </View>
-                    <View style={[styles.metricTrend, metric.trend === 'up' ? styles.trendUp : styles.trendDown]}>
-                      <Text style={[styles.metricTrendText, metric.trend === 'up' ? styles.trendUpText : styles.trendDownText]}>
-                        {metric.trend === 'up' ? '+' : ''}{metric.trendDelta}
-                      </Text>
+                      <Text style={styles.metricValue}>{typeof value === 'number' ? value.toFixed(2) : String(value)}</Text>
                     </View>
                   </GlassCard>
                 </Animated.View>
               ))}
+              {!latestAnalysis?.facial_proportions && (
+                <Text style={{ color: AppColors.textTertiary }}>Henüz analiz verisi yok.</Text>
+              )}
             </ScrollView>
           </Animated.View>
 

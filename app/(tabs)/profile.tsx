@@ -10,16 +10,15 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   User, Mail, Phone, Calendar, MapPin, Edit3, Camera, Trash2,
   Shield, Star, Award, TrendingUp, ChevronRight,
-  Bell, LogOut, Heart, Droplets, Sparkles, Check, X, Crown, Edit3
+  Bell, LogOut, Heart, Droplets, Sparkles, Check, X, Crown
 } from 'lucide-react-native';
 import { useUserStore } from '../../src/store/userStore';
 import { router } from 'expo-router';
 import { AppColors, AppRadii, AppSpacing } from '../../src/theme/colors';
 import { GlassCard } from '../../src/components/GlassCard';
-import { MockData } from '../../src/services/mockData';
+import { api } from '../../src/services/api';
 import { NotificationSettingsModal } from '../../src/components/NotificationSettingsModal';
 import { SecurityModal } from '../../src/components/SecurityModal';
-import { useUserStore } from '../../src/store/userStore';
 import { PremiumModal } from '../../src/components/PremiumModal';
 import { ProgressHistoryModal } from '../../src/components/ProgressHistoryModal';
 
@@ -123,16 +122,14 @@ const EditModal: React.FC<{
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 export default function ProfileScreen() {
-  const { currentUser } = MockData;
-  const defaultProfile: UserProfile = {
-    name: currentUser.name, surname: currentUser.surname,
-    email: currentUser.email, phone: '+90 532 000 00 00',
-    birthDate: '15/03/1998', location: 'İstanbul, Türkiye',
-    skinType: 'Kombine',
-    bio: 'Cilt bakımı ve kişisel gelişim tutkunu. Lumera ile her gün kendimi geliştiriyorum.',
-  };
+  const { userId, logout } = useUserStore();
 
-  const [profile, setProfile]     = useState<UserProfile>(defaultProfile);
+  const [profile, setProfile]     = useState<UserProfile>({
+    name: 'Kullanıcı', surname: '',
+    email: '', phone: '',
+    birthDate: '', location: '',
+    skinType: '', bio: '',
+  });
   const [photoUri, setPhotoUri]   = useState<string | null>(null);
   const [editVisible, setEdit]    = useState(false);
   const [notifVisible, setNotif]  = useState(false);
@@ -146,16 +143,34 @@ export default function ProfileScreen() {
       try {
         const photo = await AsyncStorage.getItem(STORAGE_PHOTO_KEY);
         if (photo) setPhotoUri(photo);
-        const saved = await AsyncStorage.getItem(STORAGE_PROFILE_KEY);
-        if (saved) setProfile(JSON.parse(saved));
+        
+        if (userId) {
+          const apiProfile = await api.profile.get(userId);
+          if (apiProfile) {
+            setProfile(p => ({
+              ...p,
+              name: apiProfile.full_name || 'Kullanıcı',
+              email: apiProfile.email || '',
+              birthDate: apiProfile.birth_date || p.birthDate,
+            }));
+          }
+        } else {
+          const saved = await AsyncStorage.getItem(STORAGE_PROFILE_KEY);
+          if (saved) setProfile(JSON.parse(saved));
+        }
       } catch (_) {}
     })();
-  }, []);
+  }, [userId]);
 
   // Save profile helper
   const saveProfile = async (p: UserProfile) => {
     setProfile(p);
-    try { await AsyncStorage.setItem(STORAGE_PROFILE_KEY, JSON.stringify(p)); } catch (_) {}
+    try { 
+      await AsyncStorage.setItem(STORAGE_PROFILE_KEY, JSON.stringify(p)); 
+      if (userId) {
+        await api.profile.update(userId, { birth_date: p.birthDate });
+      }
+    } catch (_) {}
   };
 
   // Photo picker
@@ -189,7 +204,10 @@ export default function ProfileScreen() {
   const handleLogout = () =>
     Alert.alert('Çıkış Yap', 'Hesabınızdan çıkmak istiyor musunuz?', [
       { text: 'İptal', style: 'cancel' },
-      { text: 'Çıkış Yap', style: 'destructive', onPress: () => router.replace('/') },
+      { text: 'Çıkış Yap', style: 'destructive', onPress: () => {
+        logout();
+        router.replace('/');
+      } },
     ]);
 
   const MENU = [

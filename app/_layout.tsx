@@ -41,7 +41,6 @@ export default function RootLayout() {
       }}>
         <Stack.Screen name="index" />
         <Stack.Screen name="signup" />
-        <Stack.Screen name="survey" />
         <Stack.Screen name="task/[id]" />
         <Stack.Screen name="summary/weekly" />
         <Stack.Screen name="summary/monthly" />

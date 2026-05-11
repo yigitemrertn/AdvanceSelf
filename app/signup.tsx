@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, StyleSheet, Pressable, SafeAreaView } from 'react-native';
 import { router } from 'expo-router';
+import { Alert, ActivityIndicator } from 'react-native';
+import { api } from '../src/services/api';
+import { useUserStore } from '../src/store/userStore';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { AntDesign, Ionicons } from '@expo/vector-icons';
@@ -11,9 +14,26 @@ export default function SignupScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  const handleSignup = () => {
-    // Şimdilik sadece Ana Sayfa'ya yönlendiriyor
-    router.replace('/(tabs)/home');
+  const setAuth = useUserStore((state) => state.setAuth);
+  const [loading, setLoading] = useState(false);
+
+  const handleSignup = async () => {
+    if (!name || !email || !password) {
+      Alert.alert('Hata', 'Lütfen tüm alanları doldurun.');
+      return;
+    }
+    setLoading(true);
+    try {
+      const response = await api.auth.register({ email, password, full_name: name });
+      if (response && response.access_token) {
+        setAuth(response.user_id, response.access_token);
+        router.replace('/(tabs)/home');
+      }
+    } catch (error: any) {
+      Alert.alert('Kayıt Başarısız', error.message || 'Lütfen bilgilerinizi kontrol edin.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -80,7 +100,11 @@ export default function SignupScreen() {
                 end={{ x: 1, y: 1 }}
                 style={styles.loginGradient}
               >
-                <Text style={styles.loginText}>Kayıt Ol</Text>
+                {loading ? (
+                  <ActivityIndicator color="#FFF" />
+                ) : (
+                  <Text style={styles.loginText}>Kayıt Ol</Text>
+                )}
               </LinearGradient>
             </Pressable>
 
@@ -97,7 +121,7 @@ export default function SignupScreen() {
               </Pressable>
               
               <Pressable style={({ pressed }) => [styles.socialBtn, styles.appleBtn, pressed && styles.pressedBtn]}>
-                <AntDesign name="apple1" size={20} color="#FFF" />
+                <AntDesign name="apple" size={20} color="#FFF" />
                 <Text style={styles.appleText}>Apple</Text>
               </Pressable>
             </View>

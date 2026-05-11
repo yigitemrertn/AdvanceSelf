@@ -8,6 +8,19 @@ from app.core.config import settings
 from app.core.database import Base, engine
 from app.models import entities  # noqa: F401
 
+from sqlalchemy import text
+import sqlite3
+
+# Self-healing migration step
+with engine.connect() as connection:
+    try:
+        connection.execute(text("ALTER TABLE users ADD COLUMN full_name VARCHAR(255);"))
+        connection.commit()
+        print("MIGRATION: Added full_name to users table successfully.")
+    except Exception:
+        # Silently pass if the column already exists or fails safely
+        pass
+
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title=settings.app_name)
