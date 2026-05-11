@@ -135,20 +135,30 @@ def _gemini_stub(analysis: Analysis, category: str) -> dict:
     }
 
 
-def _build_gemini_prompt(analysis: Analysis, category: str) -> str:
-    return (
-        "You are a beauty and style recommendation assistant.\n"
+def _build_gemini_prompt(analysis: Analysis, category: str, profile: UserProfile | None = None) -> str:
+    prompt = (
+        "You are a beauty, style, and looksmaxing recommendation assistant.\n"
         "Return ONLY valid JSON with keys: title, summary, confidence, actions.\n"
         "actions must be an array of short strings.\n"
         f"Category: {category}\n"
         f"Weight: {analysis.weight}\n"
         f"Skin type: {analysis.skin_type}\n"
-        f"Facial proportions: {analysis.facial_proportions}\n"
-        "Language: Turkish.\n"
+        f"Facial and Organ Proportions (Score out of 100): {analysis.facial_proportions}\n"
     )
+    if profile:
+        prompt += (
+            f"User Profile Info:\n"
+            f"- Gender: {profile.gender}\n"
+            f"- Height: {profile.height} cm\n"
+            f"- Body Shape: {profile.body_shape}\n"
+            f"- Face Shape: {profile.face_shape}\n"
+            f"- Preferred Styles: {profile.preferred_styles}\n"
+        )
+    prompt += "Language: Turkish.\n"
+    return prompt
 
 
-def _gemini_generate(analysis: Analysis, category: str) -> dict:
+def _gemini_generate(analysis: Analysis, category: str, profile: UserProfile | None = None) -> dict:
     if not settings.enable_real_gemini or not settings.gemini_api_key:
         return _gemini_stub(analysis, category)
     try:
@@ -157,7 +167,7 @@ def _gemini_generate(analysis: Analysis, category: str) -> dict:
         client = genai.Client(api_key=settings.gemini_api_key)
         response = client.models.generate_content(
             model=settings.gemini_model,
-            contents=_build_gemini_prompt(analysis, category),
+            contents=_build_gemini_prompt(analysis, category, profile),
             config={"temperature": 0.2},
         )
         text = (response.text or "").strip()  # type: ignore[attr-defined]
@@ -192,9 +202,12 @@ def generate_recommendations(db: Session, user_id: int, analysis_id: int) -> lis
     analysis = db.query(Analysis).filter(Analysis.id == analysis_id, Analysis.user_id == user_id).first()
     if not analysis:
         raise HTTPException(status_code=404, detail="Analysis not found")
+    
+    profile = db.query(UserProfile).filter(UserProfile.user_id == user_id).first()
+    
     items: list[Recommendation] = []
     for category in CATEGORIES:
-        content = _coerce_recommendation_schema(_gemini_generate(analysis, category), category)
+        content = _coerce_recommendation_schema(_gemini_generate(analysis, category, profile), category)
         item = Recommendation(user_id=user_id, analysis_id=analysis_id, category=category, content=json.dumps(content))
         db.add(item)
         items.append(item)
