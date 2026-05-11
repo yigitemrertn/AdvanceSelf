@@ -2,7 +2,8 @@ import { Tabs } from 'expo-router';
 import React from 'react';
 import { Platform, View, StyleSheet } from 'react-native';
 import { AppColors, AppRadii } from '../../src/theme/colors';
-import { Home, ClipboardList, Sparkles, UserCircle } from 'lucide-react-native';
+import { Home, ClipboardList, Sparkles, UserCircle, Activity } from 'lucide-react-native';
+import { BlurView } from 'expo-blur';
 
 export default function TabLayout() {
   return (
@@ -10,9 +11,9 @@ export default function TabLayout() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: 'rgba(19, 21, 31, 0.9)', // bgSecondary with opacity
+          backgroundColor: AppColors.bgSecondary,
           borderTopColor: AppColors.borderSubtle,
-          height: 80,
+          height: 70,
           paddingBottom: Platform.OS === 'ios' ? 20 : 10,
           paddingTop: 10,
           position: 'absolute',
@@ -22,8 +23,8 @@ export default function TabLayout() {
         tabBarInactiveTintColor: AppColors.textTertiary,
         tabBarLabelStyle: {
           fontSize: 10,
-          fontWeight: '600',
-          letterSpacing: 1,
+          fontWeight: '700',
+          letterSpacing: 0.5,
           marginTop: 4,
         },
       }}>
@@ -45,6 +46,17 @@ export default function TabLayout() {
           tabBarIcon: ({ color, focused }) => (
             <View style={[styles.iconContainer, focused && styles.iconContainerActive]}>
               <ClipboardList color={color} size={22} />
+            </View>
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="progress"
+        options={{
+          title: 'İLERLEME',
+          tabBarIcon: ({ color, focused }) => (
+            <View style={[styles.iconContainer, focused && styles.iconContainerActive]}>
+              <Activity color={color} size={22} />
             </View>
           ),
         }}
@@ -77,8 +89,8 @@ export default function TabLayout() {
 
 const styles = StyleSheet.create({
   iconContainer: {
-    padding: 6,
-    borderRadius: AppRadii.sm,
+    padding: 8,
+    borderRadius: AppRadii.full,
   },
   iconContainerActive: {
     backgroundColor: 'rgba(123, 94, 246, 0.15)',
