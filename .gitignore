@@ -1,6 +1,6 @@
-# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
+# ─── Expo / React Native (Frontend) ──────────────────────────────────────────
 
-# dependencies
+# Dependencies
 node_modules/
 
 # Expo
@@ -9,35 +9,108 @@ dist/
 web-build/
 expo-env.d.ts
 
-# Native
+# Native build outputs
+/ios/
+/android/
 .kotlin/
-*.orig.*
+
+# Mobile signing artifacts
 *.jks
 *.p8
 *.p12
 *.key
 *.mobileprovision
+*.orig.*
 
-# Metro
+# Metro bundler
 .metro-health-check*
 
-# debug
+# Debug logs
 npm-debug.*
 yarn-debug.*
 yarn-error.*
 
-# macOS
-.DS_Store
-*.pem
-
-# local env files
-.env*.local
-
-# typescript
+# TypeScript
 *.tsbuildinfo
 
-app-example
+# Generated
+app-example/
 
-# generated native folders
-/ios
-/android
+# ─── Python / FastAPI (Backend) ───────────────────────────────────────────────
+
+# Virtual environments
+backend/.venv/
+backend/venv/
+backend/env/
+.venv/
+venv/
+env/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyc
+
+# Distribution / packaging
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Test coverage
+.coverage
+.coverage.*
+htmlcov/
+.pytest_cache/
+.tox/
+
+# Uploads (user data, not source)
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# Database files (SQLite – dev only, not committed)
+*.db
+*.sqlite
+*.sqlite3
+
+# ─── Environment & Secrets ────────────────────────────────────────────────────
+
+.env
+.env.*
+!.env.example
+backend/.env
+backend/.env.*
+!backend/.env.example
+
+# ─── Editor & OS ──────────────────────────────────────────────────────────────
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# VS Code
+.vscode/settings.json
+.vscode/launch.json
+
+# JetBrains IDEs
+.idea/
+
+# Certificate / key files
+*.pem
+*.cert
+
+# ─── Misc ─────────────────────────────────────────────────────────────────────
+
+*.log
+*.tmp
+*.bak
+.cache/
