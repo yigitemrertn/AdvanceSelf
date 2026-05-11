@@ -1,6 +1,7 @@
 -- 1. User Account Info (Users)
 CREATE TABLE users (
     id SERIAL PRIMARY KEY,
+    full_name VARCHAR(255),
     email VARCHAR(255) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
@@ -36,5 +37,17 @@ CREATE TABLE recommendations (
     analysis_id INTEGER REFERENCES analyses(id) ON DELETE CASCADE,
     category VARCHAR(100), -- e.g., "Style", "Workout", "Skin Care"
     content JSONB, -- Recommendation details
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 5. Weekly/Monthly Progress Snapshots (Progress_Snapshots)
+CREATE TABLE progress_snapshots (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    base_analysis_id INTEGER REFERENCES analyses(id) ON DELETE CASCADE,
+    current_analysis_id INTEGER REFERENCES analyses(id) ON DELETE CASCADE,
+    delta_weight DECIMAL(5,2),
+    delta_skin_type VARCHAR(64) NOT NULL, -- e.g., "combination->normal"
+    delta_metrics JSONB NOT NULL, -- e.g., { "baseline_skin_type": "...", "current_skin_type": "..." }
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );

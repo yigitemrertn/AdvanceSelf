@@ -40,6 +40,10 @@ def test_register_and_login_flow():
     assert login.status_code == 200
     assert login.json()["user_id"] == register.json()["user_id"]
 
+    profile = client.get(f"/api/v1/users/{register.json()['user_id']}/profile")
+    assert profile.status_code == 200
+    assert profile.json()["user_id"] == register.json()["user_id"]
+
 
 def test_analysis_recommendation_and_progress_flow():
     jpeg_bytes = build_test_jpeg_bytes()
@@ -84,7 +88,22 @@ def test_analysis_recommendation_and_progress_flow():
     compare = client.post("/api/v1/progress/compare-weekly", json={"user_id": user_id})
     assert compare.status_code == 200
     assert compare.json()["status"] == "queued"
+    assert compare.json()["job_id"]
+
+    job_id = compare.json()["job_id"]
+    job_status = client.get(f"/api/v1/progress/jobs/{job_id}")
+    assert job_status.status_code == 200
+    assert job_status.json()["status"] in {"queued", "running", "completed"}
 
     latest_progress = client.get(f"/api/v1/progress/latest/{user_id}")
     assert latest_progress.status_code == 200
     assert "delta_weight" in latest_progress.json()
+
+    latest_recommendations = client.get(f"/api/v1/recommendations/latest/{user_id}")
+    assert latest_recommendations.status_code == 200
+    assert len(latest_recommendations.json()["items"]) >= 5
+
+    progress_history = client.get(f"/api/v1/progress/history/{user_id}")
+    assert progress_history.status_code == 200
+    assert progress_history.json()["user_id"] == user_id
+    assert len(progress_history.json()["items"]) >= 1

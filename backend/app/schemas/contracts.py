@@ -3,13 +3,13 @@ from datetime import date, datetime
 from pydantic import BaseModel, EmailStr, Field
 
 
-class RegisterRequest(BaseModel):
+class LoginRequest(BaseModel):
     email: EmailStr
     password: str = Field(min_length=6, max_length=128)
 
 
-class LoginRequest(RegisterRequest):
-    pass
+class RegisterRequest(LoginRequest):
+    full_name: str | None = None
 
 
 class AuthResponse(BaseModel):
@@ -74,3 +74,13 @@ class ProgressResponse(BaseModel):
     delta_skin_type: str
     delta_metrics: dict
     created_at: datetime
+
+
+class JobStatusResponse(BaseModel):
+    job_id: str
+    status: str
+
+
+class ProgressHistoryResponse(BaseModel):
+    user_id: int
+    items: list[ProgressResponse]

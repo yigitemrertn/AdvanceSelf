@@ -9,18 +9,19 @@ import httpx
 
 from app.core.config import settings
 from app.core.security import create_access_token, hash_password, verify_password
-from app.models.entities import Analysis, Recommendation, User, UserProfile
+from app.models.entities import Analysis, ProgressSnapshot, Recommendation, User, UserProfile
 from app.schemas.contracts import AnalysisCreateRequest, ProfileUpsertRequest
 from app.services.mediapipe_service import extract_face_features_from_bytes
 
 CATEGORIES = ["skin_care", "style", "makeup", "accessory", "looksmax"]
 
 
-def register_user(db: Session, email: str, password: str) -> tuple[int, str]:
+def register_user(db: Session, email: str, password: str, full_name: str | None) -> tuple[int, str]:
     existing = db.query(User).filter(User.email == email).first()
     if existing:
         raise HTTPException(status_code=409, detail="Email is already registered")
-    user = User(email=email, password_hash=hash_password(password))
+    normalized_name = full_name.strip() if full_name else email.split("@", maxsplit=1)[0]
+    user = User(full_name=normalized_name, email=email, password_hash=hash_password(password))
     db.add(user)
     db.commit()
     db.refresh(user)
@@ -243,5 +244,67 @@ def compare_latest_vs_first(db: Session, user_id: int) -> dict:
     }
 
 
+def create_progress_snapshot(db: Session, user_id: int) -> dict:
+    payload = compare_latest_vs_first(db, user_id)
+    snapshot = ProgressSnapshot(
+        user_id=user_id,
+        base_analysis_id=payload["base_analysis_id"],
+        current_analysis_id=payload["current_analysis_id"],
+        delta_weight=payload["delta_weight"],
+        delta_skin_type=payload["delta_skin_type"],
+        delta_metrics=json.dumps(payload["delta_metrics"]),
+    )
+    db.add(snapshot)
+    db.commit()
+    db.refresh(snapshot)
+    return _progress_snapshot_to_dict(snapshot)
+
+
+def _progress_snapshot_to_dict(snapshot: ProgressSnapshot) -> dict:
+    return {
+        "user_id": snapshot.user_id,
+        "base_analysis_id": snapshot.base_analysis_id,
+        "current_analysis_id": snapshot.current_analysis_id,
+        "delta_weight": snapshot.delta_weight,
+        "delta_skin_type": snapshot.delta_skin_type,
+        "delta_metrics": json.loads(snapshot.delta_metrics),
+        "created_at": snapshot.created_at,
+    }
+
+
 def latest_snapshot(db: Session, user_id: int) -> dict:
-    return compare_latest_vs_first(db, user_id)
+    snapshot = (
+        db.query(ProgressSnapshot)
+        .filter(ProgressSnapshot.user_id == user_id)
+        .order_by(desc(ProgressSnapshot.created_at))
+        .first()
+    )
+    if snapshot:
+        return _progress_snapshot_to_dict(snapshot)
+    return create_progress_snapshot(db, user_id)
+
+
+def list_progress_snapshots(db: Session, user_id: int, limit: int = 12) -> list[dict]:
+    rows = (
+        db.query(ProgressSnapshot)
+        .filter(ProgressSnapshot.user_id == user_id)
+        .order_by(desc(ProgressSnapshot.created_at))
+        .limit(limit)
+        .all()
+    )
+    if rows:
+        return [_progress_snapshot_to_dict(row) for row in rows]
+    return [create_progress_snapshot(db, user_id)]
+
+
+def get_profile(db: Session, user_id: int) -> UserProfile:
+    if not db.query(User).filter(User.id == user_id).first():
+        raise HTTPException(status_code=404, detail="User not found")
+    profile = db.query(UserProfile).filter(UserProfile.user_id == user_id).first()
+    if profile:
+        return profile
+    profile = UserProfile(user_id=user_id, preferred_styles="[]")
+    db.add(profile)
+    db.commit()
+    db.refresh(profile)
+    return profile
