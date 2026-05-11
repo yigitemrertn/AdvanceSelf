@@ -10,14 +10,16 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   User, Mail, Phone, Calendar, MapPin, Edit3, Camera, Trash2,
   Shield, Star, Award, TrendingUp, ChevronRight,
-  Bell, LogOut, Heart, Droplets, Sparkles, Check, X, Crown,
+  Bell, LogOut, Heart, Droplets, Sparkles, Check, X, Crown, Edit3
 } from 'lucide-react-native';
+import { useUserStore } from '../../src/store/userStore';
 import { router } from 'expo-router';
 import { AppColors, AppRadii, AppSpacing } from '../../src/theme/colors';
 import { GlassCard } from '../../src/components/GlassCard';
 import { MockData } from '../../src/services/mockData';
 import { NotificationSettingsModal } from '../../src/components/NotificationSettingsModal';
 import { SecurityModal } from '../../src/components/SecurityModal';
+import { useUserStore } from '../../src/store/userStore';
 import { PremiumModal } from '../../src/components/PremiumModal';
 import { ProgressHistoryModal } from '../../src/components/ProgressHistoryModal';
 
@@ -203,7 +205,10 @@ export default function ProfileScreen() {
       <View style={[st.blob, st.blobBot]} />
 
       <SafeAreaView style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={st.scroll} showsVerticalScrollIndicator={false}>
+        <ScrollView 
+          contentContainerStyle={[st.scroll, { paddingTop: 60 }]} 
+          showsVerticalScrollIndicator={false}
+        >
 
           {/* ── HERO ─────────────────────────────────── */}
           <Animated.View entering={FadeInDown.delay(50).springify()} style={st.hero}>
@@ -219,13 +224,17 @@ export default function ProfileScreen() {
 
             {/* Photo actions */}
             <View style={st.photoActions}>
+              <Pressable onPress={() => router.push('/survey')} style={st.photoActionBtn}>
+                <Edit3 size={11} color={AppColors.accentViolet} />
+                <Text style={st.photoActionText}>Avatarı Düzenle</Text>
+              </Pressable>
               <Pressable onPress={pickPhoto} style={st.photoActionBtn}>
-                <Camera size={13} color={AppColors.accentViolet} />
+                <Camera size={11} color={AppColors.accentViolet} />
                 <Text style={st.photoActionText}>Fotoğraf Ekle</Text>
               </Pressable>
               {photoUri && (
                 <Pressable onPress={removePhoto} style={[st.photoActionBtn, st.photoActionDanger]}>
-                  <Trash2 size={13} color="#FF4C8B" />
+                  <Trash2 size={11} color="#FF4C8B" />
                   <Text style={[st.photoActionText, { color: '#FF4C8B' }]}>Kaldır</Text>
                 </Pressable>
               )}

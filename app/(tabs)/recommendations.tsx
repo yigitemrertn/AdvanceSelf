@@ -178,17 +178,26 @@ export default function RecommendationsScreen() {
       <View style={[st.blob, st.blobTop]} />
 
       <SafeAreaView style={{ flex: 1 }}>
-        {/* Header */}
-        <Animated.View entering={FadeInUp.delay(80)} style={st.header}>
-          <View>
-            <Text style={st.headerTitle}>GÜNLÜK ÖNERİLER</Text>
-            <Text style={st.headerSub}>Yapay Zeka Destekli Rutin Planınız</Text>
-          </View>
-          <View style={st.headerBadge}>
-            <Flame size={14} color={AppColors.accentGold} />
-            <Text style={st.headerBadgeText}>14 gün</Text>
-          </View>
-        </Animated.View>
+        <ScrollView 
+          showsVerticalScrollIndicator={false} 
+          contentContainerStyle={{ 
+            paddingBottom: 120, 
+            maxWidth: 600, 
+            alignSelf: 'center', 
+            width: '100%' 
+          }}
+        >
+          {/* Header */}
+          <Animated.View entering={FadeInUp.delay(80)} style={[st.header, { paddingTop: 60 }]}>
+            <View>
+              <Text style={st.headerTitle}>GÜNLÜK ÖNERİLER</Text>
+              <Text style={st.headerSub}>Yapay Zeka Destekli Rutin Planınız</Text>
+            </View>
+            <View style={st.headerBadge}>
+              <Flame size={14} color={AppColors.accentGold} />
+              <Text style={st.headerBadgeText}>14 gün</Text>
+            </View>
+          </Animated.View>
 
         {/* Progress card */}
         <Animated.View entering={FadeInUp.delay(150)} style={st.progressCard}>
@@ -219,8 +228,12 @@ export default function RecommendationsScreen() {
         </Animated.View>
 
         {/* Filters */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}
-          contentContainerStyle={st.filtersRow} style={{ flexGrow: 0 }}>
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={st.filtersRow} 
+          style={{ marginBottom: AppSpacing.md, flexGrow: 0 }}
+        >
           {FILTERS.map(f => {
             const active = activeFilter === f.id;
             const FIcon = f.icon;
@@ -239,7 +252,7 @@ export default function RecommendationsScreen() {
         </ScrollView>
 
         {/* List */}
-        <ScrollView contentContainerStyle={st.list} showsVerticalScrollIndicator={false}>
+        <View style={st.list}>
           {filtered.map((rec, idx) => {
             const IconC = (LucideIcons as any)[rec.iconName];
             const color = prioColor(rec.priority);
@@ -306,7 +319,7 @@ export default function RecommendationsScreen() {
               </Animated.View>
             );
           })}
-          <View style={{ height: 100 }} />
+        </View>
         </ScrollView>
       </SafeAreaView>
 

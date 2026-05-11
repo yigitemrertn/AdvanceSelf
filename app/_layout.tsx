@@ -34,14 +34,21 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider value={CustomDarkTheme}>
-      <Stack screenOptions={{ headerShown: false }}>
+      <Stack screenOptions={{ 
+        headerShown: false, 
+        headerShadowVisible: false,
+        contentStyle: { backgroundColor: AppColors.bgPrimary, borderTopWidth: 0 }
+      }}>
         <Stack.Screen name="index" />
         <Stack.Screen name="signup" />
+        <Stack.Screen name="survey" />
+        <Stack.Screen name="task/[id]" />
+        <Stack.Screen name="summary/weekly" />
+        <Stack.Screen name="summary/monthly" />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="+not-found" />
       </Stack>
-      {/* Hide the status bar as requested for true full screen immersive experience */}
-      <StatusBar style="light" hidden={true} />
+      <StatusBar style="light" translucent={true} backgroundColor="transparent" />
     </ThemeProvider>
   );
 }

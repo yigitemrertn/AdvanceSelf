@@ -9,8 +9,9 @@ import { AppColors, AppSpacing } from '../../src/theme/colors';
 import { MockData } from '../../src/services/mockData';
 import { GlassCard } from '../../src/components/GlassCard';
 import { router } from 'expo-router';
+import { useUserStore } from '../../src/store/userStore';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 // Floating Animation Helper
 const FloatingView = ({ children, delay = 0 }: any) => {
@@ -35,14 +36,10 @@ const FloatingView = ({ children, delay = 0 }: any) => {
 };
 
 export default function HomeScreen() {
-  const { currentUser, latestAnalysis, weeklyReport, quickActions } = MockData;
-  const [activeAction, setActiveAction] = useState(quickActions[0].id);
-
-  const todayTasks = [
-    { id: '1', title: 'Sabah C Vitamini', completed: true, time: '08:00', icon: Sun },
-    { id: '2', title: '2.5 Litre Su Tüketimi', completed: false, time: 'Gün boyu', icon: Droplets },
-    { id: '3', title: 'Akşam Çift Aşamalı Temizlik', completed: false, time: '21:00', icon: Wind },
-  ];
+  const { tasks, toggleTask } = useUserStore();
+  const completedCount = tasks.filter(t => t.completed).length;
+  const totalCount = tasks.length;
+  const allDone = completedCount === totalCount && totalCount > 0;
 
   return (
     <View style={styles.container}>
@@ -55,9 +52,9 @@ export default function HomeScreen() {
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
           
           {/* Header */}
-          <Animated.View entering={FadeInUp.delay(100).springify()} style={styles.header}>
+          <Animated.View entering={FadeInUp.delay(100).springify()} style={[styles.header, { paddingTop: 60 }]}>
             <View style={styles.headerTextContainer}>
-              <Text style={styles.greetingLabel}>GÜNAYDIN, {currentUser.name.toUpperCase()}</Text>
+              <Text style={styles.greetingLabel}>GÜNAYDIN, {MockData.currentUser.name.toUpperCase()}</Text>
               <Text style={styles.greetingTitle}>Cildin harika{'\n'}görünüyor ✨</Text>
             </View>
             <Pressable style={styles.notificationBtn}>
@@ -150,15 +147,18 @@ export default function HomeScreen() {
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Günün Görevleri</Text>
               <View style={styles.taskProgressBadge}>
-                <Text style={styles.taskProgressText}>1/3 Tamamlandı</Text>
+                <Text style={styles.taskProgressText}>{completedCount}/{totalCount} Tamamlandı</Text>
               </View>
             </View>
             <View style={styles.tasksContainer}>
-              {todayTasks.map((task, i) => {
-                const TaskIcon = task.icon;
+              {tasks.map((task, i) => {
+                const TaskIcon = i === 0 ? Sun : i === 1 ? Droplets : Wind;
                 return (
                   <Animated.View key={task.id} entering={FadeInDown.delay(400 + i * 100).springify()}>
-                    <Pressable style={[styles.taskItem, task.completed && styles.taskItemCompleted]}>
+                    <Pressable 
+                      onPress={() => router.push(`/task/${task.id}`)}
+                      style={[styles.taskItem, task.completed && styles.taskItemCompleted]}
+                    >
                       <View style={styles.taskIconContainer}>
                         <TaskIcon size={20} color={task.completed ? AppColors.statusSuccess : AppColors.accentVioletLight} />
                       </View>
@@ -166,7 +166,10 @@ export default function HomeScreen() {
                         <Text style={[styles.taskTitle, task.completed && styles.taskTitleCompleted]}>{task.title}</Text>
                         <Text style={styles.taskTime}>{task.time}</Text>
                       </View>
-                      <Pressable style={styles.checkButton}>
+                      <Pressable 
+                        onPress={() => !task.completed && toggleTask(task.id)} 
+                        style={styles.checkButton}
+                      >
                         {task.completed ? (
                           <CheckCircle2 size={24} color={AppColors.statusSuccess} />
                         ) : (
@@ -185,18 +188,37 @@ export default function HomeScreen() {
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Analiz Raporu</Text>
             </View>
-            <GlassCard style={styles.reportCard}>
-              <View style={styles.reportRow}>
-                <View style={styles.reportIconWrapper}>
-                  <Sparkles size={24} color={AppColors.accentGold} />
-                </View>
-                <View style={styles.reportContent}>
-                  <Text style={styles.reportTitle}>Haftalık Cilt Özeti</Text>
-                  <Text style={styles.reportDesc}>Nem dengeniz %15 arttı. Rutininiz işe yarıyor!</Text>
-                </View>
-                <ChevronRight size={20} color={AppColors.textTertiary} />
-              </View>
-            </GlassCard>
+            <View style={{ gap: 12, paddingHorizontal: AppSpacing.lg }}>
+              <Pressable onPress={() => router.push('/summary/weekly')}>
+                <GlassCard style={styles.reportCard}>
+                  <View style={styles.reportRow}>
+                    <View style={styles.reportIconWrapper}>
+                      <Sparkles size={24} color={AppColors.accentGold} />
+                    </View>
+                    <View style={styles.reportContent}>
+                      <Text style={styles.reportTitle}>Haftalık Cilt Özeti</Text>
+                      <Text style={styles.reportDesc}>Nem dengeniz %15 arttı. Rutininiz işe yarıyor!</Text>
+                    </View>
+                    <ChevronRight size={20} color={AppColors.textTertiary} />
+                  </View>
+                </GlassCard>
+              </Pressable>
+
+              <Pressable onPress={() => router.push('/summary/monthly')}>
+                <GlassCard style={[styles.reportCard, { marginTop: 0 }]}>
+                  <View style={styles.reportRow}>
+                    <View style={[styles.reportIconWrapper, { backgroundColor: 'rgba(123,94,246,0.15)' }]}>
+                      <Activity size={24} color={AppColors.accentViolet} />
+                    </View>
+                    <View style={styles.reportContent}>
+                      <Text style={styles.reportTitle}>Aylık Gelişim Raporu</Text>
+                      <Text style={styles.reportDesc}>30 günlük değişim grafiği hazır.</Text>
+                    </View>
+                    <ChevronRight size={20} color={AppColors.textTertiary} />
+                  </View>
+                </GlassCard>
+              </Pressable>
+            </View>
           </Animated.View>
 
           {/* Skin Metrics Section */}
@@ -226,6 +248,22 @@ export default function HomeScreen() {
 
         </ScrollView>
       </SafeAreaView>
+
+      {/* Celebration Overlay */}
+      {allDone && (
+        <Animated.View 
+          entering={FadeInUp.springify()} 
+          style={styles.celebrationOverlay}
+        >
+          <LinearGradient
+            colors={['#7B5EF6', '#5B3FD0']}
+            style={styles.celebrationGradient}
+          >
+            <Sparkles size={32} color="#FFF" />
+            <Text style={styles.celebrationText}>Harika! Tüm görevler tamamlandı!</Text>
+          </LinearGradient>
+        </Animated.View>
+      )}
     </View>
   );
 }
@@ -619,5 +657,30 @@ const styles = StyleSheet.create({
   },
   trendDownText: {
     color: '#FF3366',
+  },
+  celebrationOverlay: {
+    position: 'absolute',
+    top: height * 0.3,
+    left: AppSpacing.xl,
+    right: AppSpacing.xl,
+    zIndex: 100,
+    elevation: 100,
+  },
+  celebrationGradient: {
+    padding: 24,
+    borderRadius: 24,
+    alignItems: 'center',
+    gap: 12,
+    shadowColor: '#7B5EF6',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.5,
+    shadowRadius: 20,
+    elevation: 20,
+  },
+  celebrationText: {
+    color: '#FFF',
+    fontSize: 18,
+    fontWeight: '800',
+    textAlign: 'center',
   },
 });
