@@ -34,8 +34,10 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider value={CustomDarkTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="index" />
+        <Stack.Screen name="signup" />
+        <Stack.Screen name="(tabs)" />
         <Stack.Screen name="+not-found" />
       </Stack>
       {/* Hide the status bar as requested for true full screen immersive experience */}

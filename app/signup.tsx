@@ -1,16 +1,17 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, Pressable, SafeAreaView, Platform } from 'react-native';
+import { View, Text, TextInput, StyleSheet, Pressable, SafeAreaView } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
-import { AntDesign } from '@expo/vector-icons';
-import { AppColors, AppRadii, AppSpacing } from '../src/theme/colors';
+import { AntDesign, Ionicons } from '@expo/vector-icons';
+import { AppColors, AppSpacing } from '../src/theme/colors';
 
-export default function LoginScreen() {
+export default function SignupScreen() {
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  const handleLogin = () => {
+  const handleSignup = () => {
     // Şimdilik sadece Ana Sayfa'ya yönlendiriyor
     router.replace('/(tabs)/home');
   };
@@ -22,20 +23,33 @@ export default function LoginScreen() {
       <View style={[styles.blob, styles.blobBottomRight]} />
 
       <SafeAreaView style={styles.safeArea}>
+        <View style={styles.headerBar}>
+          <Pressable onPress={() => router.back()} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={24} color={AppColors.textPrimary} />
+          </Pressable>
+        </View>
+
         <View style={styles.content}>
           <Animated.View entering={FadeInUp.delay(200).springify()} style={styles.header}>
-            <View style={styles.logoContainer}>
-              <Text style={styles.logoText}>LUMERA AI</Text>
-              <View style={styles.sparkleBadge}>
-                <AntDesign name="star" size={14} color={AppColors.accentGold} />
-              </View>
-            </View>
-            <Text style={styles.subtitle}>Cildinizin Geleceği</Text>
+            <Text style={styles.titleText}>Hesap Oluştur</Text>
+            <Text style={styles.subtitle}>Güzellik yolculuğuna başla</Text>
           </Animated.View>
 
           <Animated.View entering={FadeInDown.delay(400).springify()} style={styles.form}>
             <View style={styles.inputContainer}>
-              <Text style={styles.label}>E-posta veya Telefon</Text>
+              <Text style={styles.label}>Ad Soyad</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Adınız Soyadınız"
+                placeholderTextColor={AppColors.textTertiary}
+                value={name}
+                onChangeText={setName}
+                autoCapitalize="words"
+              />
+            </View>
+
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>E-posta</Text>
               <TextInput
                 style={styles.input}
                 placeholder="ornek@email.com"
@@ -59,14 +73,14 @@ export default function LoginScreen() {
               />
             </View>
 
-            <Pressable onPress={handleLogin} style={({ pressed }) => [styles.loginBtn, pressed && { opacity: 0.8 }]}>
+            <Pressable onPress={handleSignup} style={({ pressed }) => [styles.loginBtn, pressed && { opacity: 0.8 }]}>
               <LinearGradient
                 colors={['#7B5EF6', '#5B3FD0']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.loginGradient}
               >
-                <Text style={styles.loginText}>Giriş Yap</Text>
+                <Text style={styles.loginText}>Kayıt Ol</Text>
               </LinearGradient>
             </Pressable>
 
@@ -91,9 +105,9 @@ export default function LoginScreen() {
           </Animated.View>
 
           <Animated.View entering={FadeInDown.delay(600).springify()} style={styles.footer}>
-            <Text style={styles.footerText}>Hesabın yok mu? </Text>
-            <Pressable onPress={() => router.push('/signup')}>
-              <Text style={styles.registerText}>Kayıt Ol</Text>
+            <Text style={styles.footerText}>Zaten hesabın var mı? </Text>
+            <Pressable onPress={() => router.back()}>
+              <Text style={styles.registerText}>Giriş Yap</Text>
             </Pressable>
           </Animated.View>
         </View>
@@ -110,10 +124,23 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
   },
+  headerBar: {
+    paddingHorizontal: AppSpacing.xl,
+    paddingTop: AppSpacing.md,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   content: {
     flex: 1,
     paddingHorizontal: AppSpacing.xl,
     justifyContent: 'center',
+    paddingBottom: AppSpacing.xxxl,
   },
   blob: {
     position: 'absolute',
@@ -136,22 +163,13 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    marginBottom: AppSpacing.xxxl,
+    marginBottom: AppSpacing.xl,
   },
-  logoContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-  },
-  sparkleBadge: {
-    position: 'absolute',
-    right: -18,
-    top: -8,
-  },
-  logoText: {
-    fontSize: 36,
+  titleText: {
+    fontSize: 32,
     fontWeight: '800',
     color: AppColors.textPrimary,
-    letterSpacing: 2,
+    letterSpacing: 1,
   },
   subtitle: {
     fontSize: 16,
@@ -207,7 +225,7 @@ const styles = StyleSheet.create({
   divider: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: AppSpacing.lg,
+    marginVertical: AppSpacing.md,
   },
   line: {
     flex: 1,
