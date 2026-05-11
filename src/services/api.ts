@@ -11,8 +11,12 @@ async function getHeaders() {
     if (userStorage) {
       const parsed = JSON.parse(userStorage);
       const token = parsed.state?.token;
+      const gemKey = parsed.state?.geminiKey;
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
+      }
+      if (gemKey) {
+        headers['X-Gemini-Key'] = gemKey;
       }
     }
   } catch (error) {
@@ -66,6 +70,25 @@ export const api = {
   analysis: {
     getLatest: (userId: number) => fetchApi(`/analyses/latest/${userId}`, { method: 'GET' }),
     create: (data: any) => fetchApi('/analyses', { method: 'POST', body: JSON.stringify(data) }),
+    upload: async (formData: FormData) => {
+      const tokenData = await AsyncStorage.getItem('user-storage');
+      let headers: Record<string, string> = {};
+      if (tokenData) {
+        const parsed = JSON.parse(tokenData);
+        const token = parsed.state?.token;
+        const gemKey = parsed.state?.geminiKey;
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+        if (gemKey) headers['X-Gemini-Key'] = gemKey;
+      }
+      // Do NOT specify Content-Type for FormData, it needs boundary generated auto.
+      const response = await fetch(`${API_BASE_URL}/analyses/upload`, {
+        method: 'POST',
+        headers: headers,
+        body: formData,
+      });
+      if (!response.ok) throw new Error("Fotoğraf analizi başarısız oldu.");
+      return await response.json();
+    },
   },
   recommendations: {
     getLatest: (userId: number) => fetchApi(`/recommendations/latest/${userId}`, { method: 'GET' }),

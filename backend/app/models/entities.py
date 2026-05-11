@@ -21,8 +21,10 @@ class UserProfile(Base):
 
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), primary_key=True)
     birth_date: Mapped[datetime | None] = mapped_column(Date, nullable=True)
+    age: Mapped[int | None] = mapped_column(Integer, nullable=True)
     gender: Mapped[str | None] = mapped_column(String(32), nullable=True)
     height: Mapped[float | None] = mapped_column(Float, nullable=True)
+    weight: Mapped[float | None] = mapped_column(Float, nullable=True)
     body_shape: Mapped[str | None] = mapped_column(String(50), nullable=True)
     face_shape: Mapped[str | None] = mapped_column(String(50), nullable=True)
     preferred_styles: Mapped[str | None] = mapped_column(Text, nullable=True)

@@ -14,8 +14,10 @@ export interface Task {
 interface UserState {
   userId: number | null;
   token: string | null;
+  geminiKey: string | null;
   tasks: Task[];
   setAuth: (userId: number, token: string) => void;
+  setGeminiKey: (key: string) => void;
   logout: () => void;
   toggleTask: (id: string) => void;
   resetTasks: () => void;
@@ -26,6 +28,7 @@ export const useUserStore = create<UserState>()(
     (set) => ({
       userId: null,
       token: null,
+      geminiKey: null,
       tasks: [
         { 
           id: '1', 
@@ -53,7 +56,8 @@ export const useUserStore = create<UserState>()(
         },
       ],
       setAuth: (userId, token) => set({ userId, token }),
-      logout: () => set({ userId: null, token: null }),
+      setGeminiKey: (key) => set({ geminiKey: key }),
+      logout: () => set({ userId: null, token: null, geminiKey: null }),
       toggleTask: (id) => set((state) => ({
         tasks: state.tasks.map((t) => 
           t.id === id ? { ...t, completed: !t.completed } : t

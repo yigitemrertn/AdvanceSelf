@@ -43,6 +43,7 @@ export default function TabLayout() {
         name="survey"
         options={{
           title: 'ANKET',
+          href: null, // Hides this tab from the visible bar
           tabBarIcon: ({ color, focused }) => (
             <View style={[styles.iconContainer, focused && styles.iconContainerActive]}>
               <ClipboardList color={color} size={22} />

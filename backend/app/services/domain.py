@@ -41,8 +41,10 @@ def upsert_profile(db: Session, user_id: int, payload: ProfileUpsertRequest) -> 
     profile = db.query(UserProfile).filter(UserProfile.user_id == user_id).first() or UserProfile(user_id=user_id)
     db.add(profile)
     profile.birth_date = payload.birth_date
+    profile.age = payload.age
     profile.gender = payload.gender
     profile.height = payload.height
+    profile.weight = payload.weight
     profile.body_shape = payload.body_shape
     profile.face_shape = payload.face_shape
     profile.preferred_styles = json.dumps(payload.preferred_styles)
@@ -138,34 +140,56 @@ def _gemini_stub(analysis: Analysis, category: str) -> dict:
 
 def _build_gemini_prompt(analysis: Analysis, category: str, profile: UserProfile | None = None) -> str:
     prompt = (
-        "You are a beauty, style, and looksmaxing recommendation assistant.\n"
-        "Return ONLY valid JSON with keys: title, summary, confidence, actions.\n"
-        "actions must be an array of short strings.\n"
-        f"Category: {category}\n"
-        f"Weight: {analysis.weight}\n"
-        f"Skin type: {analysis.skin_type}\n"
-        f"Facial and Organ Proportions (Score out of 100): {analysis.facial_proportions}\n"
+        "You are a professional beauty, aesthetics, and looksmaxing consultant. "
+        "Deliver hyper-targeted, actionable, results-oriented advice. "
+        "Ensure format is strict JSON containing exactly: title, summary, confidence, actions.\n"
+        f"Task: Generate unique {category.upper()} recommendations.\n"
+        f"Key Metrics (Out of 100): {analysis.facial_proportions}\n"
     )
+
     if profile:
+        preferred_styles = []
+        try:
+            preferred_styles = json.loads(profile.preferred_styles or "[]")
+        except Exception: pass
+
+        # Integrate local styles.json for deeper context
+        style_context = ""
+        try:
+            styles_path = Path(__file__).parent.parent.parent / "styles.json"
+            if styles_path.exists():
+                all_styles = json.loads(styles_path.read_text(encoding="utf-8"))
+                matching_styles = [s for s in all_styles if s.get("name") in preferred_styles]
+                if matching_styles:
+                    style_context = "\nPreferred Style Profiles:\n" + "\n".join([
+                        f"- {s.get('name')}: {s.get('desc')} (Vibe: {s.get('vibe')}, Colors: {s.get('colors')})"
+                        for s in matching_styles
+                    ])
+        except Exception: pass
+
         prompt += (
-            f"User Profile Info:\n"
+            f"\nUser Context:\n"
             f"- Gender: {profile.gender}\n"
-            f"- Height: {profile.height} cm\n"
-            f"- Body Shape: {profile.body_shape}\n"
-            f"- Face Shape: {profile.face_shape}\n"
-            f"- Preferred Styles: {profile.preferred_styles}\n"
+            f"- Body Type: {profile.body_shape}\n"
+            f"- Target Aesthetic Goals: {', '.join(preferred_styles)}\n"
+            f"{style_context}\n"
         )
-    prompt += "Language: Turkish.\n"
+    
+    prompt += "\nOutput Language: Turkish. Generate 3 to 5 specific practical action points.\n"
     return prompt
 
 
-def _gemini_generate(analysis: Analysis, category: str, profile: UserProfile | None = None) -> dict:
-    if not settings.enable_real_gemini or not settings.gemini_api_key:
+def _gemini_generate(analysis: Analysis, category: str, profile: UserProfile | None = None, gemini_key: str | None = None) -> dict:
+    actual_key = gemini_key or settings.gemini_api_key
+    # Force enable if manual key passed
+    should_run = settings.enable_real_gemini or (gemini_key and gemini_key.startswith("AIza"))
+    
+    if not should_run or not actual_key:
         return _gemini_stub(analysis, category)
     try:
         from google import genai
 
-        client = genai.Client(api_key=settings.gemini_api_key)
+        client = genai.Client(api_key=actual_key)
         response = client.models.generate_content(
             model=settings.gemini_model,
             contents=_build_gemini_prompt(analysis, category, profile),
@@ -199,7 +223,7 @@ def _coerce_recommendation_schema(payload: dict, category: str) -> dict:
     return payload
 
 
-def generate_recommendations(db: Session, user_id: int, analysis_id: int) -> list[Recommendation]:
+def generate_recommendations(db: Session, user_id: int, analysis_id: int, gemini_key: str | None = None) -> list[Recommendation]:
     analysis = db.query(Analysis).filter(Analysis.id == analysis_id, Analysis.user_id == user_id).first()
     if not analysis:
         raise HTTPException(status_code=404, detail="Analysis not found")
@@ -208,7 +232,7 @@ def generate_recommendations(db: Session, user_id: int, analysis_id: int) -> lis
     
     items: list[Recommendation] = []
     for category in CATEGORIES:
-        content = _coerce_recommendation_schema(_gemini_generate(analysis, category, profile), category)
+        content = _coerce_recommendation_schema(_gemini_generate(analysis, category, profile, gemini_key), category)
         item = Recommendation(user_id=user_id, analysis_id=analysis_id, category=category, content=json.dumps(content))
         db.add(item)
         items.append(item)
@@ -227,12 +251,12 @@ def compare_latest_vs_first(db: Session, user_id: int) -> dict:
     latest = db.query(Analysis).filter(Analysis.user_id == user_id).order_by(desc(Analysis.analysis_date)).first()
     if not first_analysis or not latest:
         raise HTTPException(status_code=404, detail="Not enough analyses for comparison")
-    if first_analysis.id == latest.id:
-        raise HTTPException(status_code=400, detail="At least two analyses are required")
     delta_weight = None
-    if first_analysis.weight is not None and latest.weight is not None:
+    if first_analysis.id != latest.id and first_analysis.weight is not None and latest.weight is not None:
         delta_weight = round(latest.weight - first_analysis.weight, 2)
     delta_metrics = {"baseline_skin_type": first_analysis.skin_type, "current_skin_type": latest.skin_type}
+    if first_analysis.id == latest.id:
+        delta_metrics["info"] = "Baseline established"
     return {
         "user_id": user_id,
         "base_analysis_id": first_analysis.id,

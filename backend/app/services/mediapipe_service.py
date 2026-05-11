@@ -29,11 +29,17 @@ def _fallback_metrics(image: np.ndarray) -> tuple[str, dict]:
     symmetry = max(50.0, min(95.0, 70.0 + (ratio - 1.0) * 10))
     jawline = max(50.0, min(95.0, 65.0 + ((h % 10) * 2)))
     skin_type = "normal" if (h + w) % 3 == 0 else "combination"
+    
+    # Generate coherent placeholders so UI doesn't crash
     return skin_type, {
-        "symmetry": round(symmetry / 100, 3),
-        "jawline_definition": round(jawline / 100, 3),
+        "symmetry_score": round(symmetry, 1),
+        "eye_score": 75.0,
+        "nose_score": 80.0,
+        "lip_score": 78.0,
+        "jawline_score": round(jawline, 1),
         "overall_attractiveness_score": round((symmetry + jawline) / 2, 1),
-        "source": "fallback_no_face_detected",
+        "face_shape_ratio": 0.73,
+        "source": "fallback_mocked_no_face",
     }
 
 

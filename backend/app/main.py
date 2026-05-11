@@ -16,10 +16,18 @@ with engine.connect() as connection:
     try:
         connection.execute(text("ALTER TABLE users ADD COLUMN full_name VARCHAR(255);"))
         connection.commit()
-        print("MIGRATION: Added full_name to users table successfully.")
-    except Exception:
-        # Silently pass if the column already exists or fails safely
-        pass
+    except Exception: pass
+    
+    try:
+        connection.execute(text("ALTER TABLE user_profiles ADD COLUMN age INTEGER;"))
+        connection.commit()
+    except Exception: pass
+    
+    try:
+        connection.execute(text("ALTER TABLE user_profiles ADD COLUMN weight FLOAT;"))
+        connection.commit()
+    except Exception: pass
+    print("MIGRATION: Schema self-healing check done.")
 
 Base.metadata.create_all(bind=engine)
 

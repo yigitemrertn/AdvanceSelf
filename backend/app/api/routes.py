@@ -1,10 +1,11 @@
 import json
 from uuid import uuid4
 
-from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, UploadFile
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, UploadFile, Header
 from sqlalchemy.orm import Session
 
 from app.core.database import SessionLocal, get_db
+from app.models.entities import User
 from app.jobs.in_memory_jobs import job_queue
 from app.schemas.contracts import (
     AnalysisCreateRequest,
@@ -69,11 +70,15 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
 @router.patch("/users/{user_id}/profile", response_model=ProfileResponse)
 def patch_profile(user_id: int, payload: ProfileUpsertRequest, db: Session = Depends(get_db)):
     profile = upsert_profile(db, user_id, payload)
+    user = db.query(User).filter(User.id == user_id).first()
     return ProfileResponse(
         user_id=profile.user_id,
+        full_name=user.full_name if user else None,
         birth_date=profile.birth_date,
+        age=profile.age,
         gender=profile.gender,
         height=profile.height,
+        weight=profile.weight,
         body_shape=profile.body_shape,
         face_shape=profile.face_shape,
         preferred_styles=json.loads(profile.preferred_styles or "[]"),
@@ -83,11 +88,15 @@ def patch_profile(user_id: int, payload: ProfileUpsertRequest, db: Session = Dep
 @router.get("/users/{user_id}/profile", response_model=ProfileResponse)
 def get_user_profile(user_id: int, db: Session = Depends(get_db)):
     profile = get_profile(db, user_id)
+    user = db.query(User).filter(User.id == user_id).first()
     return ProfileResponse(
         user_id=profile.user_id,
+        full_name=user.full_name if user else None,
         birth_date=profile.birth_date,
+        age=profile.age,
         gender=profile.gender,
         height=profile.height,
+        weight=profile.weight,
         body_shape=profile.body_shape,
         face_shape=profile.face_shape,
         preferred_styles=json.loads(profile.preferred_styles or "[]"),
@@ -95,9 +104,9 @@ def get_user_profile(user_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/analyses", response_model=AnalysisResponse)
-def create_analysis_endpoint(payload: AnalysisCreateRequest, db: Session = Depends(get_db)):
+def create_analysis_endpoint(payload: AnalysisCreateRequest, db: Session = Depends(get_db), x_gemini_key: str | None = Header(None)):
     analysis = create_analysis(db, payload)
-    generate_recommendations(db, payload.user_id, analysis.id)
+    generate_recommendations(db, payload.user_id, analysis.id, gemini_key=x_gemini_key)
     return _analysis_to_response(analysis)
 
 
@@ -107,6 +116,7 @@ async def create_analysis_upload_endpoint(
     weight: float | None = Form(None),
     image: UploadFile = File(...),
     db: Session = Depends(get_db),
+    x_gemini_key: str | None = Header(None),
 ):
     image_bytes = await image.read()
     analysis = create_analysis_from_upload(
@@ -116,7 +126,7 @@ async def create_analysis_upload_endpoint(
         image_bytes=image_bytes,
         weight=weight,
     )
-    generate_recommendations(db, user_id, analysis.id)
+    generate_recommendations(db, user_id, analysis.id, gemini_key=x_gemini_key)
     return _analysis_to_response(analysis)
 
 
@@ -131,19 +141,19 @@ def get_latest_analysis(user_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/recommendations/regenerate", response_model=RecommendationListResponse)
-def regenerate_recommendations(payload: RecommendationRegenerateRequest, db: Session = Depends(get_db)):
+def regenerate_recommendations(payload: RecommendationRegenerateRequest, db: Session = Depends(get_db), x_gemini_key: str | None = Header(None)):
     analysis = latest_analysis(db, payload.user_id)
-    generate_recommendations(db, payload.user_id, analysis.id)
+    generate_recommendations(db, payload.user_id, analysis.id, gemini_key=x_gemini_key)
     recs = list_recommendations(db, payload.user_id, analysis.id)
     return RecommendationListResponse(items=[RecommendationItem(category=r.category, content=json.loads(r.content), created_at=r.created_at) for r in recs])
 
 
 @router.get("/recommendations/latest/{user_id}", response_model=RecommendationListResponse)
-def get_latest_recommendations(user_id: int, db: Session = Depends(get_db)):
+def get_latest_recommendations(user_id: int, db: Session = Depends(get_db), x_gemini_key: str | None = Header(None)):
     analysis = latest_analysis(db, user_id)
     recs = list_recommendations(db, user_id, analysis.id)
     if not recs:
-        recs = generate_recommendations(db, user_id, analysis.id)
+        recs = generate_recommendations(db, user_id, analysis.id, gemini_key=x_gemini_key)
     return RecommendationListResponse(
         items=[RecommendationItem(category=r.category, content=json.loads(r.content), created_at=r.created_at) for r in recs]
     )

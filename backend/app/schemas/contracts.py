@@ -20,8 +20,10 @@ class AuthResponse(BaseModel):
 
 class ProfileUpsertRequest(BaseModel):
     birth_date: date | None = None
+    age: int | None = None
     gender: str | None = None
     height: float | None = None
+    weight: float | None = None
     body_shape: str | None = None
     face_shape: str | None = None
     preferred_styles: list[str] = Field(default_factory=list)
@@ -29,6 +31,7 @@ class ProfileUpsertRequest(BaseModel):
 
 class ProfileResponse(ProfileUpsertRequest):
     user_id: int
+    full_name: str | None = None
 
 
 class AnalysisCreateRequest(BaseModel):

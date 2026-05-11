@@ -4,8 +4,12 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInUp, SlideInRight, useAnimatedStyle, withSpring, withTiming, withSequence, Easing } from 'react-native-reanimated';
 import { Check, ChevronRight } from 'lucide-react-native';
 import Slider from '@react-native-community/slider';
+import { router } from 'expo-router';
+import { ActivityIndicator, Alert } from 'react-native';
 
 import { AppColors, AppRadii, AppSpacing } from '../../src/theme/colors';
+import { useUserStore } from '../../src/store/userStore';
+import { api } from '../../src/services/api';
 
 const { width, height } = Dimensions.get('window');
 
@@ -236,7 +240,42 @@ export default function SurveyScreen() {
   const [selectedStyles, setSelectedStyles] = useState<string[]>([]);
   
   const [isChanging, setIsChanging] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const { userId } = useUserStore();
   const changeTimeout = useRef<any>(null);
+
+  const handleSubmit = async () => {
+    if (!userId) {
+      Alert.alert("Hata", "Kullanıcı oturum açmamış.");
+      return;
+    }
+    if (!gender || !faceShape || !bodyShape) {
+      Alert.alert("Eksik Veri", "Lütfen zorunlu alanları (Cinsiyet, Yüz ve Vücut Tipi) doldurun.");
+      return;
+    }
+    
+    try {
+      setLoading(true);
+      const payload = {
+        gender,
+        age,
+        height: heightValue,
+        weight,
+        face_shape: faceShape,
+        body_shape: bodyShape,
+        preferred_styles: selectedStyles
+      };
+      await api.profile.update(Number(userId), payload);
+      
+      Alert.alert("Tebrikler", "Profil bilgileriniz başarıyla kaydedildi! Şimdi devam etmek için lütfen API anahtarınızı girin.", [
+        { text: "Tamam", onPress: () => router.replace('/(tabs)/profile') }
+      ]);
+    } catch (error: any) {
+      Alert.alert("Hata", error.message || "Profil güncellenemedi.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const triggerReaction = () => {
     setIsChanging(true);
@@ -422,17 +461,26 @@ export default function SurveyScreen() {
             </View>
           </Animated.View>
 
-          {/* Submit Button */}
           <Animated.View entering={SlideInRight.delay(600)} style={styles.submitSection}>
-            <Pressable style={({ pressed }) => [styles.submitBtn, pressed && { opacity: 0.8 }]}>
+            <Pressable 
+              onPress={handleSubmit} 
+              disabled={loading}
+              style={({ pressed }) => [styles.submitBtn, (pressed || loading) && { opacity: 0.8 }]}
+            >
               <LinearGradient
                 colors={['#7B5EF6', '#5B3FD0']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.submitGradient}
               >
-                <Text style={styles.submitBtnText}>PROFİLİ KAYDET</Text>
-                <ChevronRight size={20} color="#FFF" />
+                {loading ? (
+                  <ActivityIndicator color="#FFF" />
+                ) : (
+                  <>
+                    <Text style={styles.submitBtnText}>PROFİLİ KAYDET</Text>
+                    <ChevronRight size={20} color="#FFF" />
+                  </>
+                )}
               </LinearGradient>
             </Pressable>
           </Animated.View>

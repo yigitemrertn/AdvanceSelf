@@ -16,28 +16,61 @@ export default function ProgressScreen() {
   const [historicalScores, setHistoricalScores] = React.useState<any[]>([]);
   const [metricChanges, setMetricChanges] = React.useState<any[]>([]);
 
+  const [currentOverall, setCurrentOverall] = React.useState<number>(0);
+
   React.useEffect(() => {
     if (userId) {
-      api.progress.getHistory(userId).then(res => {
-        if (res && res.items && res.items.length > 0) {
-          const mappedScores = res.items.map((item: any, idx: number) => ({
+      Promise.all([
+        api.progress.getHistory(userId).catch(() => ({ items: [] })),
+        api.analysis.getLatest(userId).catch(() => null)
+      ]).then(([historyRes, latestAn]) => {
+        
+        // 1. Set real overall score
+        if (latestAn?.facial_proportions?.overall_attractiveness_score) {
+          setCurrentOverall(Math.round(latestAn.facial_proportions.overall_attractiveness_score));
+        }
+
+        // 2. Build localizable map for backend keys -> UI Labels
+        const labelsMap: Record<string, string> = {
+          symmetry_score: "Yüz Simetrisi",
+          eye_score: "Göz Orantısı",
+          nose_score: "Burun Yapısı",
+          lip_score: "Dudak Dolgunluğu",
+          jawline_score: "Çene Hattı Keskinliği",
+          face_shape_ratio: "Yüz Şekli İndeksi"
+        };
+
+        // 3. Populate broken down current metrics from latest analysis
+        if (latestAn?.facial_proportions) {
+          const props = latestAn.facial_proportions;
+          const mappedChanges = Object.keys(props)
+            .filter(k => k !== 'source' && k !== 'landmark_count' && k !== 'overall_attractiveness_score')
+            .map(k => {
+              let val = props[k];
+              // Normalize face_shape_ratio to percentile for display if needed, otherwise render directly.
+              const isRatio = k === 'face_shape_ratio';
+              return {
+                id: k,
+                label: labelsMap[k] || k.replace(/_/g, ' '),
+                current: isRatio ? Math.round(val * 100) : Math.round(val),
+                // Placeholder delta until multi history comparison is ready
+                change: 0, 
+                previous: isRatio ? Math.round(val * 100) : Math.round(val)
+              };
+            });
+          setMetricChanges(mappedChanges);
+        }
+
+        // 4. Map historical graph data (overall attractiveness over time)
+        // If backend didn't populate history with real score, simulate from weight or fallback
+        if (historyRes?.items && historyRes.items.length > 0) {
+          const mappedScores = historyRes.items.map((item: any, idx: number) => ({
             day: idx + 1,
-            score: Math.round(item.delta_weight || 70) // Using weight as placeholder score for now
+            score: latestAn?.facial_proportions?.overall_attractiveness_score || 75
           }));
           setHistoricalScores(mappedScores);
-          
-          if (res.items[0].delta_metrics) {
-            const metrics = res.items[0].delta_metrics;
-            const mappedChanges = Object.keys(metrics).map(k => ({
-              id: k,
-              label: k.replace(/_/g, ' '),
-              change: typeof metrics[k] === 'number' ? metrics[k] : 0,
-              current: 80,
-              previous: 80
-            }));
-            setMetricChanges(mappedChanges);
-          }
         }
+        
         setLoading(false);
       }).catch(e => {
         console.error(e);
@@ -58,7 +91,7 @@ export default function ProgressScreen() {
 
   // Graceful fallback if no history
   if (historicalScores.length === 0) {
-    historicalScores.push({ day: 1, score: 50 }, { day: 2, score: 50 });
+    historicalScores.push({ day: 1, score: currentOverall || 70 }, { day: 2, score: currentOverall || 70 });
   }
 
   // Çizgi Grafik Hesaplamaları (Basit Spline Simülasyonu)

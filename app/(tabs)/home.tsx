@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, SafeAreaView, Pressable, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, SafeAreaView, Pressable, Dimensions, Alert } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInUp, FadeInDown, SlideInRight, SlideInDown, useAnimatedStyle, withRepeat, withTiming, withSequence, Easing } from 'react-native-reanimated';
 import { Bell, TrendingUp, ChevronRight, CheckCircle2, Circle, Sparkles, Activity, Droplets, Sun, Wind } from 'lucide-react-native';
@@ -40,17 +41,78 @@ export default function HomeScreen() {
   const { tasks, toggleTask, userId } = useUserStore();
   const [profile, setProfile] = useState<any>(null);
   const [latestAnalysis, setLatestAnalysis] = useState<any>(null);
+  const [recommendations, setRecommendations] = useState<any[]>([]);
   const [activeAction, setActiveAction] = useState('scan');
   const [loading, setLoading] = useState(true);
+  const [analyzing, setAnalyzing] = useState(false);
+
+  const handleScan = async () => {
+    try {
+      // Request permissions
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert("Yetki Gerekli", "Fotoğraf analizi için galeri iznine ihtiyacımız var.");
+        return;
+      }
+
+      // Launch picker
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [3, 4],
+        quality: 0.8,
+      });
+
+      if (result.canceled) return;
+
+      setAnalyzing(true);
+      const localUri = result.assets[0].uri;
+      const filename = localUri.split('/').pop() || 'photo.jpg';
+      const match = /\.(\w+)$/.exec(filename);
+      const type = match ? `image/${match[1]}` : `image/jpeg`;
+
+      const formData = new FormData();
+      formData.append('user_id', String(userId));
+      // Explicit object for expo file mapping
+      formData.append('image', { uri: localUri, name: filename, type } as any);
+      
+      // If we have current weight in profile, pass it
+      if (profile?.weight) {
+        formData.append('weight', String(profile.weight));
+      }
+
+      const newAnalysis = await api.analysis.upload(formData);
+      setLatestAnalysis(newAnalysis);
+      
+      Alert.alert("Analiz Tamamlandı", "Yeni yüz analizi verileriniz başarıyla işlendi ve güncellendi! ✨");
+    } catch (error: any) {
+      Alert.alert("Analiz Hatası", error.message || "Fotoğraf yüklenirken bir sorun oluştu.");
+    } finally {
+      setAnalyzing(false);
+    }
+  };
 
   useEffect(() => {
     if (userId) {
       Promise.all([
         api.profile.get(userId).catch(() => null),
-        api.analysis.getLatest(userId).catch(() => null)
-      ]).then(([prof, an]) => {
-        if (prof) setProfile(prof);
+        api.analysis.getLatest(userId).catch(() => null),
+        api.recommendations.getLatest(userId).catch(() => ({ items: [] }))
+      ]).then(([prof, an, recs]) => {
+        if (prof) {
+          setProfile(prof);
+          if (!prof.gender) {
+            setLoading(false);
+            setTimeout(() => router.replace('/(tabs)/survey'), 100);
+            return;
+          }
+        } else {
+          setLoading(false);
+          setTimeout(() => router.replace('/(tabs)/survey'), 100);
+          return;
+        }
         if (an) setLatestAnalysis(an);
+        if (recs?.items) setRecommendations(recs.items);
         setLoading(false);
       });
     } else {
@@ -93,10 +155,6 @@ export default function HomeScreen() {
               <Text style={styles.greetingLabel}>GÜNAYDIN, {(profile?.full_name || 'KULLANICI').toUpperCase()}</Text>
               <Text style={styles.greetingTitle}>Cildin harika{'\n'}görünüyor ✨</Text>
             </View>
-            <Pressable style={styles.notificationBtn}>
-              <View style={styles.notificationDot} />
-              <Bell size={22} color={AppColors.textPrimary} />
-            </Pressable>
           </Animated.View>
 
           {/* Hero Score Card */}
@@ -125,11 +183,15 @@ export default function HomeScreen() {
 
                 <View style={styles.heroMainContent}>
                   <FloatingView>
-                    <Text style={styles.heroScore}>{latestAnalysis?.weight || '--'}</Text>
+                    <Text style={styles.heroScore}>
+                      {latestAnalysis?.facial_proportions?.overall_attractiveness_score 
+                        ? Math.round(latestAnalysis.facial_proportions.overall_attractiveness_score)
+                        : '--'}
+                    </Text>
                   </FloatingView>
                   <View style={styles.heroScoreDetails}>
-                    <Text style={styles.heroMaxScore}>kg</Text>
-                    <Text style={styles.heroStatus}>Mevcut Kilo</Text>
+                    <Text style={styles.heroMaxScore}>/ 100</Text>
+                    <Text style={styles.heroStatus}>Genel Görünüm Skoru</Text>
                   </View>
                 </View>
 
@@ -159,7 +221,11 @@ export default function HomeScreen() {
                     <Pressable 
                       onPress={() => {
                         setActiveAction(action.id);
-                        if(index === 0) router.push('/(tabs)/survey');
+                        if (action.id === 'scan') {
+                          handleScan();
+                        } else if (action.route) {
+                          router.push(action.route as any);
+                        }
                       }}
                     >
                       <LinearGradient
@@ -167,9 +233,15 @@ export default function HomeScreen() {
                         style={[styles.actionCard, !isActive && styles.actionCardInactive]}
                       >
                         <View style={[styles.actionIconWrapper, isActive ? styles.iconActive : styles.iconInactive]}>
-                          <IconComponent size={24} color={isActive ? '#7B5EF6' : AppColors.textPrimary} />
+                          {analyzing && action.id === 'scan' ? (
+                            <ActivityIndicator size="small" color={isActive ? '#FFF' : AppColors.accentViolet} />
+                          ) : (
+                            <IconComponent size={24} color={isActive ? '#7B5EF6' : AppColors.textPrimary} />
+                          )}
                         </View>
-                        <Text style={[styles.actionText, isActive && styles.actionTextActive]}>{action.label}</Text>
+                        <Text style={[styles.actionText, isActive && styles.actionTextActive]}>
+                          {analyzing && action.id === 'scan' ? "Analiz Ediliyor..." : action.label}
+                        </Text>
                       </LinearGradient>
                     </Pressable>
                   </Animated.View>
@@ -178,44 +250,40 @@ export default function HomeScreen() {
             </ScrollView>
           </Animated.View>
 
-          {/* Daily Tasks (Modernized) */}
+          {/* AI Recommendations Section */}
           <Animated.View entering={SlideInDown.delay(400).springify()} style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Günün Görevleri</Text>
-              <View style={styles.taskProgressBadge}>
-                <Text style={styles.taskProgressText}>{completedCount}/{totalCount} Tamamlandı</Text>
-              </View>
+              <Text style={styles.sectionTitle}>Sana Özel Öneriler</Text>
+              <Pressable onPress={() => router.push('/(tabs)/recommendations')}>
+                <Text style={styles.seeAllText}>Tümünü Gör</Text>
+              </Pressable>
             </View>
             <View style={styles.tasksContainer}>
-              {tasks.map((task, i) => {
-                const TaskIcon = i === 0 ? Sun : i === 1 ? Droplets : Wind;
-                return (
-                  <Animated.View key={task.id} entering={FadeInDown.delay(400 + i * 100).springify()}>
-                    <Pressable 
-                      onPress={() => router.push(`/task/${task.id}`)}
-                      style={[styles.taskItem, task.completed && styles.taskItemCompleted]}
-                    >
-                      <View style={styles.taskIconContainer}>
-                        <TaskIcon size={20} color={task.completed ? AppColors.statusSuccess : AppColors.accentVioletLight} />
-                      </View>
-                      <View style={styles.taskInfo}>
-                        <Text style={[styles.taskTitle, task.completed && styles.taskTitleCompleted]}>{task.title}</Text>
-                        <Text style={styles.taskTime}>{task.time}</Text>
-                      </View>
+              {recommendations.length === 0 ? (
+                <Text style={{ color: AppColors.textTertiary, padding: 10 }}>Henüz öneri oluşturulmamış. Yüzünü analiz ederek başla!</Text>
+              ) : (
+                recommendations.slice(0, 3).map((rec, i) => {
+                  const recData = rec.content || {};
+                  const RecIcon = i === 0 ? Sparkles : i === 1 ? Droplets : Activity;
+                  return (
+                    <Animated.View key={i} entering={FadeInDown.delay(400 + i * 100).springify()}>
                       <Pressable 
-                        onPress={() => !task.completed && toggleTask(task.id)} 
-                        style={styles.checkButton}
+                        onPress={() => router.push('/(tabs)/recommendations')}
+                        style={styles.taskItem}
                       >
-                        {task.completed ? (
-                          <CheckCircle2 size={24} color={AppColors.statusSuccess} />
-                        ) : (
-                          <Circle size={24} color={AppColors.borderSubtle} />
-                        )}
+                        <View style={styles.taskIconContainer}>
+                          <RecIcon size={20} color={AppColors.accentVioletLight} />
+                        </View>
+                        <View style={styles.taskInfo}>
+                          <Text style={styles.taskTitle}>{recData.title || rec.category.toUpperCase()}</Text>
+                          <Text numberOfLines={1} style={styles.taskTime}>{recData.summary}</Text>
+                        </View>
+                        <ChevronRight size={20} color={AppColors.borderSubtle} />
                       </Pressable>
-                    </Pressable>
-                  </Animated.View>
-                );
-              })}
+                    </Animated.View>
+                  );
+                })
+              )}
             </View>
           </Animated.View>
 
@@ -284,21 +352,7 @@ export default function HomeScreen() {
         </ScrollView>
       </SafeAreaView>
 
-      {/* Celebration Overlay */}
-      {allDone && (
-        <Animated.View 
-          entering={FadeInUp.springify()} 
-          style={styles.celebrationOverlay}
-        >
-          <LinearGradient
-            colors={['#7B5EF6', '#5B3FD0']}
-            style={styles.celebrationGradient}
-          >
-            <Sparkles size={32} color="#FFF" />
-            <Text style={styles.celebrationText}>Harika! Tüm görevler tamamlandı!</Text>
-          </LinearGradient>
-        </Animated.View>
-      )}
+      {/* Celebration Overlay Removed to prevent UI lockout */}
     </View>
   );
 }
